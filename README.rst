@@ -1,2 +1,2 @@
-# consistency-checking
-Common consistency enforcement tools
+Consistenty Enforcement Tools
+=============================
