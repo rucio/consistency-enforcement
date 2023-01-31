@@ -5,7 +5,7 @@ from consistency_enforcement import PartitionedList, cmp3_generator, Stats
 Version = "1.1"
 
 Usage = """
-python cmp3.py [-z] [-s <stats file> [-S <stats key>]] <b prefix> <r prefix> <a prefix> <dark output> <missing output>
+%s [-z] [-s <stats file> [-S <stats key>]] <b prefix> <r prefix> <a prefix> <dark output> <missing output>
 """
 
 
@@ -31,8 +31,10 @@ def main():
         opts = dict(opts)
 
         if len(args) < 5:
-                print (Usage)
-                sys.exit(2)
+            cmd = sys.argv[0].rsplit("/", 1)[-1]
+            if cmd.endswith(".py"):
+                cmd = "python " + cmd
+            print(Usage % (cmd,))
         compress = "-z" in opts
         stats_file = opts.get("-s")
         stats_key = opts.get("-S", "cmp3")
