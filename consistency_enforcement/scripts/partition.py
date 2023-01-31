@@ -8,7 +8,7 @@ except:
 
 
 Usage = """
-python partition.py -o <output prefix> <file> ...
+%s -o <output prefix> <file> ...
 
 Optional:    
             -q - quiet
@@ -23,7 +23,10 @@ def main():
     opts, args = getopt.getopt(sys.argv[1:], "n:o:c:qr:z")
     opts = dict(opts)
     if not args or not ("-o" in opts):
-        print(Usage)
+        cmd = sys.argv[0].rsplit("/", 1)[-1]
+        if cmd.endswith(".py"):
+            cmd = "python " + cmd
+        print(Usage % (cmd,))
         sys.exit(2)
     
     nparts = None

@@ -17,7 +17,14 @@ setup(
     description = ("Common modules and scripts for Rucio consistency enforcement"),
     license = "BSD 3-clause",
     url = "https://github.com/rucio/consistency-enforcement",
-    packages=['consistency_enforcement'],
+    packages=['consistency_enforcement', "consistency_enforcement.scripts"],
     long_description="Common modules and scripts for Rucio consistency enforcement", #read('README'),
-    zip_safe = False
+    zip_safe = False,
+    entry_points = {
+        "console_scripts": [
+            "ce_partition = consistency_enforcement.scripts.partition:main",
+            "ce_db_dump = consistency_enforcement.scripts.db_dump:main",
+            "ce_cmp5 = consistency_enforcement.scripts.cmp5:main"
+        ]
+    }
 )
