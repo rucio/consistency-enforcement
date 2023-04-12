@@ -1,11 +1,10 @@
 import random, string, sys, glob, time, gzip, os
+from rucio_consistency import PartitionedList, cmp3_generator, Stats
 
-from consistency_enforcement import PartitionedList, cmp3_generator, Stats
-
-Version = "1.1"
+Version = "cmp5 1.1"
 
 Usage = """
-%s [-z] [-s <stats file> [-S <stats key>]] <b prefix> <r prefix> <a prefix> <dark output> <missing output>
+%s [-z] [-s <stats file> [-S <stats key>]] <b m prefix> <b d prefix> <r prefix> <a m prefix> <a d prefix> <dark output> <missing output>
 """
 
 
@@ -35,16 +34,21 @@ def main():
             if cmd.endswith(".py"):
                 cmd = "python " + cmd
             print(Usage % (cmd,))
+        sys.exit(2)
         compress = "-z" in opts
         stats_file = opts.get("-s")
         stats_key = opts.get("-S", "cmp3")
-        stats = Stats(stats_file) if stats_file else None
+        if stats_file:
+            stats = Stats(stats_file) if stats_file else None
 
-        b_prefix, r_prefix, a_prefix, out_dark, out_missing = args
+        b_m_prefix, b_d_prefix, r_prefix, a_m_prefix, a_d_prefix, out_dark, out_missing = args
 
-        a_list = PartitionedList.open(a_prefix)
-        r_list = PartitionedList.open(r_prefix)
-        b_list = PartitionedList.open(b_prefix)
+        a_m_list = PartitionedList.open(a_m_prefix)
+        a_d_list = PartitionedList.open(a_d_prefix)
+        r_m_list = PartitionedList.open(r_prefix)
+        r_d_list = PartitionedList.open(r_prefix)
+        b_m_list = PartitionedList.open(b_m_prefix)
+        b_d_list = PartitionedList.open(b_d_prefix)
 
         my_stats= {
                 "version": Version,
@@ -57,20 +61,29 @@ def main():
                 "missing_list_file": None,
                 "dark_list_file": None,
                 
-                "b_prefix": b_prefix,
-                "a_prefix": a_prefix,
-                "r_prefix": r_prefix,
-
-                "a_files": a_list.FileNames,
-                "b_files": b_list.FileNames,
-                "r_files": r_list.FileNames,
-
-                "a_nfiles": a_list.NParts,
-                "b_nfiles": b_list.NParts,
-                "r_nfiles": r_list.NParts,
-
                 "status": "started"
             }
+            
+        if False:
+            my_stats.update({
+                "b_m_prefix": b_m_prefix,
+                "b_d_prefix": b_d_prefix,
+                "a_m_prefix": a_m_prefix,
+                "a_d_prefix": a_d_prefix,
+                "r_prefix": r_prefix,
+
+                "a_m_files": a_m_list.FileNames,
+                "b_m_files": b_m_list.FileNames,
+                "a_d_files": a_d_list.FileNames,
+                "b_d_files": b_d_list.FileNames,
+
+                "a_m_nfiles": a_m_list.NParts,
+                "b_m_nfiles": b_m_list.NParts,
+                "a_d_nfiles": a_d_list.NParts,
+                "b_d_nfiles": b_d_list.NParts,
+            
+                "r_nfiles": r_d_list.NParts
+            })
         
         if stats is not None:
             stats[stats_key] = my_stats
@@ -84,17 +97,18 @@ def main():
             fd = open(out_dark, "w")
             fm = open(out_missing, "w")
 
-        diffs = cmp3_generator(a_list, r_list, b_list)
+        diffs_m = cmp3_generator(a_m_list, r_m_list, b_m_list, 'm')
         nm = nd = 0
-        for t, path in diffs:
-            if t == 'd':
-                fd.write(path)
-                nd += 1
-            else:
-                fm.write(path)
-                nm += 1
-        fd.close()
+        for path in diffs_m:
+            fm.write(path+"\n")
+            nm += 1
         fm.close()
+
+        diffs_d = cmp3_generator(a_d_list, r_d_list, b_d_list, 'd')
+        for path in diffs_d:
+            fd.write(path+"\n")
+            nd += 1
+        fd.close()
 
         print("Found %d dark and %d missing replicas" % (nd, nm))
         t1 = time.time()
@@ -105,8 +119,8 @@ def main():
                 "missing": nm,
                 "dark": nd,
                 "status": "done",
-                "missing_list_file": out_missing,
-                "dark_list_file": out_dark
+                "missing_list_file": out_missing.rsplit('/', 1)[-1],        # file names only
+                "dark_list_file": out_dark.rsplit('/', 1)[-1]
             })
                 
         if stats is not None:
