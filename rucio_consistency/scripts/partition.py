@@ -1,4 +1,4 @@
-from consistency_enforcement import PartitionedList, CEConfiguration
+from rucio_consistency import PartitionedList, CEConfiguration
 import sys, getopt, re, gzip
 try:
     import tqdm

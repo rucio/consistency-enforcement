@@ -1,6 +1,6 @@
 import sys, glob, time, os
 
-from consistency_enforcement import PartitionedList, Stats
+from rucio_consistency import PartitionedList, Stats
 
 Version = "1.0"
 

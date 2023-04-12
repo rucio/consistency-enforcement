@@ -1,7 +1,7 @@
 import getopt, os, time, re, gzip, json, traceback
 import sys, uuid
 
-from consistency_enforcement import PartitionedList, DBConfig, CEConfiguration, Stats
+from rucio_consistency import PartitionedList, DBConfig, CEConfiguration, Stats
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
