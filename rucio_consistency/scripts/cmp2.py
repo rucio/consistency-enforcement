@@ -5,8 +5,8 @@ from rucio_consistency import PartitionedList, Stats
 Version = "1.0"
 
 Usage = """
-python cmp2.py [-z] [-s <stats file> [-S <stats key>]]    (join|minus|xor|or) <A prefix> <B prefix> <output prefix>
-python cmp2.py [-z] [-s <stats file> [-S <stats key>]] -f (join|minus|xor|or) <A file> <B file> <output file>
+%(cmd)s [-z] [-s <stats file> [-S <stats key>]]    (join|minus|xor|or) <A prefix> <B prefix> <output prefix>
+%(cmd)s [-z] [-s <stats file> [-S <stats key>]] -f (join|minus|xor|or) <A file> <B file> <output file>
 """
 
 def main():
@@ -20,8 +20,11 @@ def main():
 
 
     if len(args) < 4:
-            print (Usage)
-            sys.exit(2)
+        cmd = sys.argv[0].rsplit("/", 1)[-1]
+        if cmd.endswith(".py"):
+            cmd = "python " + cmd
+        print(Usage % {"cmd":cmd})
+        sys.exit(2)
 
     stats_file = opts.get("-s")
     stats_key = opts.get("-S", "join")
