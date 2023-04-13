@@ -1,4 +1,4 @@
-Version = "1.0.10"
+Version = "1.0.11"
 version_info = tuple([int(p) for p in Version.split(".")])
 
 if __name__ == "__main__":

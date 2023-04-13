@@ -241,7 +241,7 @@ def main():
                 continue
 
             for root, root_count in list(root_file_counts.items()):
-                prefix = r + '/' if not root.endswith('/') else root
+                prefix = root + '/' if not root.endswith('/') else root
                 if path.startswith(prefix):
                     root_file_counts[root] = root_count + 1
                     break
@@ -265,7 +265,7 @@ def main():
                 break
         for out_list in outputs.values():
             out_list.close()
-        sys.stderr.write("Found %d files in %d directories\n" % (n, len(dirs)))
+        sys.stderr.write("Found %d files in %d directories\n" % (ntotal, len(dirs)))
         t1 = time.time()
         t = int(t1 - t0)
         s = t % 60
