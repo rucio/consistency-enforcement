@@ -17,7 +17,7 @@ from rucio_consistency import PartitionedList, DBConfig, CEConfiguration, Stats
 Version = "2.0"
 
 Usage = """
-python db_dump.py [options] -c <config.yaml> <rse_name>
+%(cmd)s [options] -c <config.yaml> <rse_name>
     -c <config file> -- required
     -d <db config file> -- required - uses rucio.cfg format. Must contain "default" and "schema" under [databse]
     -v -- verbose
@@ -110,8 +110,11 @@ def main():
     opts = dict(opts)
 
     if not args or (not "-c" in opts and not "-d" in opts):
-            print (Usage)
-            sys.exit(2)
+        cmd = sys.argv[0].rsplit("/", 1)[-1]
+        if cmd.endswith(".py"):
+            cmd = "python " + cmd
+        print(Usage % {"cmd":cmd})
+        sys.exit(2)
 
     verbose = "-v" in opts
     long_output = "-l" in opts

@@ -34,7 +34,8 @@ def main():
             if cmd.endswith(".py"):
                 cmd = "python " + cmd
             print(Usage % (cmd,))
-        sys.exit(2)
+            sys.exit(2)
+
         compress = "-z" in opts
         stats_file = opts.get("-s")
         stats_key = opts.get("-S", "cmp3")
