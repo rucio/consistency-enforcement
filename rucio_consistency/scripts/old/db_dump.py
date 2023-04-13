@@ -1,6 +1,8 @@
 import getopt, os, time, re, gzip, json, traceback
 import sys, uuid
 
+from rucio_consistency import PartitionedList, DBConfig, CEConfiguration, Stats
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String
@@ -12,12 +14,14 @@ from sqlalchemy.dialects.mysql import BINARY
 from sqlalchemy.types import TypeDecorator, CHAR, String
 from sqlalchemy.exc import ArgumentError
 
-from rucio_consistency import PartitionedList, DBConfig, CEConfiguration, Stats
+Version = "1.2"
 
-Version = "2.0"
+t0 = time.time()
+
+#from sqlalchemy import schema
 
 Usage = """
-python db_dump.py [options] -c <config.yaml> <rse_name>
+%s [options] -c <config.yaml> <rse_name>
     -c <config file> -- required
     -d <db config file> -- required - uses rucio.cfg format. Must contain "default" and "schema" under [databse]
     -v -- verbose
@@ -30,11 +34,8 @@ python db_dump.py [options] -c <config.yaml> <rse_name>
     -z -- produce gzipped output
     -s <stats file> -- write stats into JSON file
        -S <key> -- add dump stats to stats under the key
-    -r <file>   -- file counts per root and store in the file as JSON structure with file counts
     -m <N files> -- stop after N files
 """
-
-t0 = time.time()
 
 class DBDumpConfiguration(CEConfiguration):
 
@@ -44,8 +45,6 @@ class DBDumpConfiguration(CEConfiguration):
 
     def __getitem__(self, name):
         return self.dbdump_param(self.RSE, name, required=True)
-
-#from sqlalchemy import schema
 
 class GUID(TypeDecorator):
     """
@@ -110,8 +109,11 @@ def main():
     opts = dict(opts)
 
     if not args or (not "-c" in opts and not "-d" in opts):
-            print (Usage)
-            sys.exit(2)
+        cmd = sys.argv[0].rsplit("/", 1)[-1]
+        if cmd.endswith(".py"):
+            cmd = "python " + cmd
+        print(Usage % (cmd,))
+        sys.exit(2)
 
     verbose = "-v" in opts
     long_output = "-l" in opts
@@ -120,9 +122,6 @@ def main():
     stats_file = opts.get("-s")
     stats_key = opts.get("-S", "db_dump")
     stop_after = int(opts.get("-m", 0)) or None
-    root_file_counts_out = opts.get("-r")
-    if root_file_counts_out:
-        root_file_counts_out = open(root_file_counts_out, "w")
 
     rse_name = args[0]
 
@@ -216,12 +215,11 @@ def main():
                 print("including replicas in states:", list(all_states), file=sys.stderr)
                 replicas = replicas.filter(Replica.state.in_(list(all_states)))
         dirs = set()
-        ntotal = 0
+        n = 0
         filter_re = None    #config.dbdump_param(rse, "filter")
         ignored_files = 0
         if filter_re:
             filter_re = re.compile(filter_re)
-        root_file_counts = {root: 0 for root in config.RootList}
         for r in replicas:
             path = r.name
             state = r.state
@@ -236,13 +234,7 @@ def main():
             if any(path.startswith(ignore_prefix) for ignore_prefix in ignore_list):
                 ignored_files += 1
                 continue
-
-            for root, root_count in list(root_file_counts.items()):
-                prefix = r + '/' if not root.endswith('/') else root
-                if path.startswith(prefix):
-                    root_file_counts[root] = root_count + 1
-                    break
-
+            
             words = path.rsplit("/", 1)
             if len(words) == 1:
                     dirp = "/"
@@ -256,8 +248,10 @@ def main():
                         out_list.add("%s\t%s\t%s\t%s\t%s" % (rse_name, r.scope, r.name, path or "null", r.state))
                     else:
                         out_list.add(path or "null")
-            ntotal += 1
-            if stop_after is not None and ntotal >= stop_after:
+            n += 1
+            if n % batch == 0:
+                    print(n)
+            if stop_after is not None and n >= stop_after:
                 print(f"stopped after {stop_after} files", file=sys.stderr)
                 break
         for out_list in outputs.values():
@@ -284,15 +278,12 @@ def main():
             stats.update_section(stats_key, {
                 "status":"done",
                 "end_time":t1,
-                "files":ntotal,
+                "files":n,
                 "ignored_files":ignored_files,
                 "elapsed":t1-t0,
                 "directories":len(dirs),
                 "ignore_list":ignore_list
             })
-        if root_file_counts_out is not None:
-            root_file_counts_out.write(json.dumps(root_file_counts, indent=4, sort_keys=True))
-            root_file_counts_out.close()
             
 if __name__ == "__main__":
-    main()
+        main()

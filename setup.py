@@ -24,7 +24,6 @@ setup(
     entry_points = {
         "console_scripts": [
             "rce_update_stats = rucio_consistency.scripts.update_stats:main",
-            "rce_diffs = rucio_consistency.scripts.diffs:main",
             "rce_partition = rucio_consistency.scripts.partition:main",
             "rce_db_dump = rucio_consistency.scripts.db_dump:main",
             "rce_cmp5 = rucio_consistency.scripts.cmp5:main",

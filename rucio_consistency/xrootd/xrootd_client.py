@@ -1,7 +1,7 @@
 from pythreader import synchronized, ShellCommand, Primitive
 import re, json, os, os.path, traceback
 import subprocess, time, random, gzip
-from rucio_ce import to_str
+from rucio_consistency import to_str
 
 def canonic_path(path):
     while path and "//" in path:

@@ -1,11 +1,11 @@
 from pythreader import TaskQueue, Task, DEQueue, PyThread, synchronized, ShellCommand, Primitive
-import re, json, os, os.path, traceback
+import re, json, os, os.path, traceback, sys
 import subprocess, time, random, gzip
 
-from rucio_ce import to_str, Stats, PartitionedList, ScannerConfiguration
+from rucio_consistency import to_str, Stats, PartitionedList, ScannerConfiguration
 from .xrootd_client import XRootDClient
 
-Version = "3.1"
+Version = "4.0"
 
 GB = 1024*1024*1024
 
@@ -440,16 +440,16 @@ def path_to_lfn(path, path_prefix, remove_prefix, add_prefix, path_filter, rewri
         lfn = rewrite_path.sub(rewrite_out, lfn)   
     return lfn
 
-def scan_root(rse, config, client, root, root_expected, my_stats, stats, stats_key,
-            recursive_threshold, max_scanners, file_list, dir_list, empty_dirs_file,
+def scan_root(rse, config, client, root, root_expected, my_stats, stats, stats_key, 
+            quiet, display_progress, max_files,
+            recursive_threshold, max_scanners, timeout,
+            file_list, dir_list, empty_dirs_file,
             ignore_failed_directories, include_sizes):
 
     failed = root_failed = False
     
-    timeout = override_timeout or config.ScannerTimeout
     server = config.Server
     server_root = config.ServerRoot
-    max_scanners = override_max_scanners or config.NWorkers
     ignore_subdirs = config.ignore_subdirs(root)
     is_redirector = config.ServerIsRedirector
     ignore_list = config.IgnoreList
@@ -584,11 +584,12 @@ def main():
 
     quiet = "-q" in opts
     display_progress = not quiet and "-v" in opts
-    override_recursive_threshold = int(opts.get("-R", 0))
-    override_timeout = int(opts.get("-t", 0))
-    override_max_scanners = int(opts.get("-m", 0))
-    max_files = opts.get("-M")
-    if max_files is not None: max_files = int(max_files)
+    max_files = int(opts.get("-M", 0)) or None
+
+    recursive_threshold = int(opts.get("-R", config.RecursionThreshold))
+    max_scanners = int(opts.get("-m", config.NWorkers))
+    timeout = int(opts.get("-t", config.ScannerTimeout))
+    
     stats_file = opts.get("-s")
     stats_key = opts.get("-S", "scanner")
     ignore_directory_scan_errors = "-k" in opts
@@ -656,8 +657,6 @@ def main():
     if stats is not None:
         stats[stats_key] = my_stats
     
-    max_scanners = override_max_scanners or config.NWorkers
-    recursive_threshold = override_recursive_threshold or config.RecursionThreshold
     root_paths = [canonic_path(root if root.startswith("/") else server_root + "/" + root) for root in config.RootList]
     
     t0 = time.time()
@@ -688,14 +687,16 @@ def main():
             try:
                 print(f"Scanning root {root} ...", file=sys.stderr)
                 expected = root_file_counts.get(root, 0) > 0
-                failed = scan_root(rse, config, client, root, expected, my_stats, stats, stats_key, recursive_threshold, 
-                        max_scanners, out_list, dir_list, empty_dirs_file,
+                failed = scan_root(rse, config, client, root, expected, my_stats, stats, stats_key, 
+                        quiet, display_progress, max_files,
+                        recursive_threshold, max_scanners, timeout,
+                        out_list, dir_list, empty_dirs_file,
                         ignore_directory_scan_errors, include_sizes)
             except:
                 exc = traceback.format_exc()
                 print(exc)
                 lines = exc.split("\n")
-                scanning = my_stats.setdefault("scanning", {"root":client.Root})
+                scanning = my_stats.setdefault("scanning", {"root":root})
                 scanning["exception"] = lines
                 scanning["exception_time"] = time.time()
                 failed = True
