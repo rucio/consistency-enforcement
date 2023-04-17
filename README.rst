@@ -1,6 +1,35 @@
 Consistenty Enforcement Tools
 =============================
 
+Installation
+------------
+
+The easiest way to install the package is to use pip:
+
+.. code-block:: shell
+
+    $ pip install rucio-consistency
+    
+    or 
+    
+    $ pip install rucio-consistency --user
+    $ export PATH=...     # make sure that the place where pip puts the executables is in your PATH
+    
+
+Another way is to download the package from the GitHub repository and then install it:
+
+.. code-block:: shell
+
+    $ git clone https://github.com/rucio/consistency-enforcement.git
+    $ cd consistency-enforcement
+    $ python setup.py install
+
+    or 
+
+    $ python setup.py install --user
+    $ export PATH=...     # make sure that the place where pip puts the executables is in your PATH
+    
+
 XRootD Scanner
 --------------
 
@@ -32,7 +61,7 @@ comparison of 3 separate sets of file paths or LFNs to produce the list of missi
 so that it takes O(set size) time, the tool kit partitions each of the 3 lists into subsets using a simple and efficient hashing function
 (specifically, Adler32) so that the same path always gets into the same partition number given constant number of partitions.
 Once each of the 3 lists is partitioned (which takes O(set size) time), then 3-way comparison is performed on each triplet of corresponding
-partitions from each of the 3 sets. This comparison is performed in memory and it also takes O(set size) time. Then the comparison
+partitions from each of the 3 sets. The triplet comparison is performed in memory and it also takes O(set size) time. Then the comparison
 results from all the triplets are merged into combined "dark" and missing list. Partition size is chosen so that it is not too small
 and yet it can fit into the virtual memory of a single process without causing memory swapping inefficiency.
 
