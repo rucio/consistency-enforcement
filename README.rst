@@ -45,6 +45,18 @@ Python module
 Command line tool
 .................
 
+.. code-block:: shell
+
+    $ rce_partition -o <output prefix> <file> ...
+
+    Options:    
+    -q - quiet
+    -c <config file>
+    -r <rse> - RSE name - to use RSE-specific configuration, ignored if -c is not used
+    -n <nparts> - override the value from the <config file>
+    -z - use gzip compression for output
+
+
 Set Comparison Tools
 --------------------
 
