@@ -32,7 +32,7 @@ comparison of 3 separate sets of file paths or LFNs to produce the list of missi
 so that it takes O(set size) time, the tool kit partitions each of the 3 lists into subsets using a simple and efficient hashing function
 (specifically, Adler32) so that the same path always gets into the same partition number given constant number of partitions.
 Once each of the 3 lists is partitioned (which takes O(set size) time), then 3-way comparison is performed on each triplet of corresponding
-partitions from each of the 3 sets. This comparison is performed in memory and it also takes O(set size) time. Then the comparison
+partitions from each of the 3 sets. The triplet comparison is performed in memory and it also takes O(set size) time. Then the comparison
 results from all the triplets are merged into combined "dark" and missing list. Partition size is chosen so that it is not too small
 and yet it can fit into the virtual memory of a single process without causing memory swapping inefficiency.
 
