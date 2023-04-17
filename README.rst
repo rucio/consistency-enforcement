@@ -4,7 +4,7 @@ Consistenty Enforcement Tools
 Installation
 ------------
 
-The easiest way to install the package is to use pip:
+The easiest way to install the package is to use ``pip``:
 
 .. code-block:: shell
 
@@ -57,9 +57,9 @@ List Partitioning and Comparison
 
 This set of tools is created to compare very large (~100 million entries) sets of file paths or names or text strings of any other kind so that
 the time spent comparing the lists grows lineary with the set size. One of the operations used in the Rucio Consistency Enforcement is synchronous
-comparison of 3 separate sets of file paths or LFNs to produce the list of missing and "dark" files. In order to perform this function
-so that it takes O(set size) time, the tool kit partitions each of the 3 lists into subsets using a simple and efficient hashing function
-(specifically, Adler32) so that the same path always gets into the same partition number given constant number of partitions.
+comparison of 3 separate sets of file paths or LFNs to produce the lists of missing and "dark" files. In order to perform this function
+so that it takes O(set size) time, the toolkit first partitions each of the 3 lists into subsets using a simple and efficient hashing function
+(specifically, Adler32) so that the same path always gets into the same partition given constant number of partitions.
 Once each of the 3 lists is partitioned (which takes O(set size) time), then 3-way comparison is performed on each triplet of corresponding
 partitions from each of the 3 sets. The triplet comparison is performed in memory and it also takes O(set size) time. Then the comparison
 results from all the triplets are merged into combined "dark" and missing list. Partition size is chosen so that it is not too small
