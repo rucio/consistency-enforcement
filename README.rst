@@ -1,6 +1,35 @@
 Consistenty Enforcement Tools
 =============================
 
+Installation
+------------
+
+The easiest way to install the package is to use pip:
+
+.. code-block:: shell
+
+    $ pip install rucio-consistency
+    
+    or 
+    
+    $ pip install rucio-consistency --user
+    $ export PATH=...     # make sure that the place where pip puts the executables is in your PATH
+    
+
+Another way is to download the package from the GitHub repository and then install it:
+
+.. code-block:: shell
+
+    $ git clone https://github.com/rucio/consistency-enforcement.git
+    $ cd consistency-enforcement
+    $ python setup.py install
+
+    or 
+
+    $ python setup.py install --user
+    $ export PATH=...     # make sure that the place where pip puts the executables is in your PATH
+    
+
 XRootD Scanner
 --------------
 
