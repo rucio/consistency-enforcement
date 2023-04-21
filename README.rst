@@ -52,10 +52,10 @@ XRootD Scanner
     -s <stats_file>             - write final statistics to JSON file
     -r <root count file>        - JSON file with file counds by root
     
-List Partitioning and Comparison
---------------------------------
+Set Partitioning and Comparison
+-------------------------------
 
-This set of tools is created to compare very large (~100 million entries) sets of file paths or names or text strings of any other kind so that
+These tools can be used to compare very large (~100 million entries) sets of file paths or names or text strings of any other kind so that
 the time spent comparing the lists grows lineary with the set size. One of the operations used in the Rucio Consistency Enforcement is synchronous
 comparison of 3 separate sets of file paths or LFNs to produce the lists of missing and "dark" files. In order to perform this function
 so that it takes O(set size) time, the toolkit first partitions each of the 3 lists into subsets using a simple and efficient hashing function
@@ -65,14 +65,11 @@ partitions from each of the 3 sets. The triplet comparison is performed in memor
 results from all the triplets are merged into combined "dark" and missing list. Partition size is chosen so that it is not too small
 and yet it can fit into the virtual memory of a single process without causing memory swapping inefficiency.
 
-Set Partitioning
-----------------
+Set partitioning
+................
 
-Python module
-.............
-
-Command line tool
-.................
+This tool can be used to create a partitioned list of items. It assumes that each item is represented as a line in each
+of the input text files.
 
 .. code-block:: shell
 
@@ -82,37 +79,58 @@ Command line tool
     -q - quiet
     -c <config file>
     -r <rse> - RSE name - to use RSE-specific configuration, ignored if -c is not used
-    -n <nparts> - override the value from the <config file>
-    -z - use gzip compression for output
+    -n <nparts> - override the value from the <config file> for the RSE
+    -z - use gzip compression for the output
 
+rce_cmp3
+........
 
-Set Comparison Tools
---------------------
+.. code-block:: shell
 
-cmp5
-....
+    $ rce_cmp3 [-z] [-s <stats file> [-S <stats key>]] <b prefix> <r prefix> <a prefix> <dark output> <missing output>
+
+``rce_cmp3`` command peforrms "naive" consistency comparison between 3 sets of items stored in corresponding partitioned item lists:
+
+    * Database dump after the site scan
+    * Site scan results
+    * Database dump before the site scan
+    
+It produces 2 files with the output lists:
+
+    * "Dark" items - items present in the site scan but not in any of the 2 database dumps
+    * Missing items - items present in both database dumps but not in the site scan
+
+rce_cmp5
+........
 
 
 .. code-block:: shell
 
     $ rce_cmp5 [-z] [-s <stats file> [-S <stats key>]] <b m prefix> <b d prefix> <r prefix> <a m prefix> <a d prefix> <dark output> <missing output>
 
-cmp3
-....
+        <b m prefix> - Prefix for the partitioned list with the DB dump before the site scan used to produce the missing list
+        <b d prefix> - Prefix for the partitioned list with the DB dump before the site scan used to produce the "dark" list
+        <r prefix> - Prefix for the partitioned list with the site scan results
+        <a m prefix> - Prefix for the partitioned list with the DB dump after the site scan used to produce the missing list
+        <a d prefix> - Prefix for the partitioned list with the DB dump after the site scan used to produce the "dark" list
 
-.. code-block:: shell
+        <dark output> <missing output> - output files
 
-    $ rce_cmp3 [-z] [-s <stats file> [-S <stats key>]] <b prefix> <r prefix> <a prefix> <dark output> <missing output>
+This is more "conservative" version of ``rce_cmp3`` script. The difference between ``rce_cmp5`` and ``rce_cmp3`` 
+is that ``rce_cmp5`` takes 2 different pairs of the database dumps. One of the pair includes all RSE replicas
+from Rucio, regardless of the replica status and is used to produce the "dark" items list. The other pair of database dumps includes only
+active (``A``) replicas, and this pair is used to produce the list of missing items. As you can see, the "dark" and missing lists produced by ``rce_cmp5``
+are never supersets of those produced by ``rce_cmp3``. Hence, they are generally more conservative.
 
-
-cmp2
-....
+rce_cmp2
+........
 
 .. code-block:: shell
 
     $ rce_cmp2 [-z] [-s <stats file> [-S <stats key>]]    (join|minus|xor|or) <A prefix> <B prefix> <output prefix>
     $ rce_cmp2 [-z] [-s <stats file> [-S <stats key>]] -f (join|minus|xor|or) <A file> <B file> <output file>
 
+General purpose tool to compare 2 partitioned lists. Requires that both lists have the same number of partitions.
 
 Rucio Replicas Dump
 -------------------
@@ -139,3 +157,4 @@ Rucio Replicas Dump
 
 Configuration File
 ------------------
+

@@ -1,6 +1,32 @@
 from .part import PartitionedList
 
 def cmp3(a, r, b):
+    """
+    Performs the 3-way consistency comparison between 3 lists:
+        
+        a - database dump after the scan
+        r - site scan results
+        b - database dump before the scan
+    
+    Produces 2 lists:
+    
+        missing items - items present in both ``a`` and ``b`` but not in ``r``
+        "dark" items - items present in ``r`` bit not in ``a`` nor ``b``
+    
+    Notice that results are symmetric with respect to swapping ``a`` and ``b``
+
+    Parameters
+    ----------
+    a : iterable
+    b : iterable
+    r : iterable
+    
+    Returns
+    -------
+    tuple (d, m)
+        d and m are dark list and missing list respectively
+    """
+    
     #
     # produces 2 lists:
     #
@@ -67,6 +93,40 @@ def cmp3_lists(a_list, r_list, b_list):
     return d_list, m_list
 
 def cmp3_generator(a_list, r_list, b_list, stream=None):
+    """
+    Performs the 3-way consistency comparison between 3 partitoined lists:
+        
+        a_list - database dump after the scan
+        r_list - site scan results
+        b_list - database dump before the scan
+    
+    Produces:
+    
+        missing items - items present in both ``a`` and ``b`` but not in ``r``
+        "dark" items - items present in ``r`` bit not in ``a`` nor ``b``
+    
+    Notice that results are symmetric with respect to swapping ``a`` and ``b``
+
+    Parameters
+    ----------
+    a : ParitionedList object
+    b : ParitionedList object
+    r : ParitionedList object
+    stream : str or None
+        output stream selection, "d" or "m" or None
+    
+    Returns
+    -------
+    geretator of tuples (<stream>, <item>)
+       ``stream`` is eirher "d" or "m" or None. "d" will select only "dark" items, "m" will select only missing items and
+        None will return all
+    
+    Notes
+    -----
+    The order in which items are retruned is not specified and may change depending on the implementation details.
+    
+    Number of partitions in all 3 lists must be the same.
+    """
 
     assert a_list.NParts == r_list.NParts and r_list.NParts == b_list.NParts, "Inconsistent number of parts: B:%d, R:%d, A:%d" % (
         b_list.NParts, r_list.NParts, a_list.NParts)
