@@ -158,3 +158,57 @@ Rucio Replicas Dump
 Configuration File
 ------------------
 
+Consistency Enforcement tools use common configuration file used to configure various components on per-RSE basis. Here is a sample of 
+a configuration file in YAML format:
+
+.. code-block::
+
+    database:		# optional. rucio.cfg can be used instead 
+            host:           host.cern.ch
+            port:           10121
+            service:        host.cern.ch
+            schema:         THE_SCHEMA
+            user:           database_reader
+            password:       "password"
+
+    rses:
+      "*": # default values for all RSEs
+        include_sizes: no
+        partitions:     5
+        ignore_list:
+            - /store/backfill
+            - /store/test
+            - /store/unmerged
+            - /store/temp
+            - /store/mc/SAM
+            - /store/mc/HC
+            - /store/accounting
+            - /store/express/tier0_harvest
+        scanner:
+          recursion:      1
+          nworkers:        8
+          timeout:        300
+          server_root: /
+          remove_prefix: /
+          add_prefix: /
+          roots:
+          - path: /store/express
+          - path: /store/mc
+          - path: /store/data
+          - path: /store/generator
+          - path: /store/results
+          - path: /store/hidata
+          - path: /store/himc
+          - path: /store/relval
+        dbdump:
+          path_root:   /
+
+
+      T0_CH_CERN_Disk:
+        scanner:
+          include_sizes: no
+          server: eoscms.cern.ch
+          server_root: /eos/cms/tier0/store/
+      T1_DE_KIT_Disk:
+        scanner:
+          server: cmsxrootd-kit.gridka.de:1094
