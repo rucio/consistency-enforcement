@@ -30,6 +30,32 @@ Another way is to download the package from the GitHub repository and then insta
     $ export PATH=...     # make sure that the place where pip puts the executables is in your PATH
     
 
+Rucio Databse Replocas Table Dump
+---------------------------------
+
+Censistency Enforcement Toolkit compares contents of the Rucio replicas table to actual state of the RSE.
+The ``rce_db_dump`` tool is used to produce a list of replica LFNs in selected state(s) from the ``repplicas``
+table. It accesses the Rucio databse directly fot that. The output of ``rce_db_dump`` is a partitioned list
+of replica LFNs.
+
+.. code-block:: shell
+
+    rce_db_dump [options] -c <config.yaml> <rse_name>
+        -c <config file> -- required
+        -d <db config file> -- required - uses rucio.cfg format. Must contain "default" and "schema" under [databse]
+        -v -- verbose
+        -n <nparts>
+        -f <state>:<prefix> -- filter replicas with given state to the files set with prefix
+            state can be either combination of capital letters or "*" 
+            can be repeated  ( -f A:/path1 -f CD:/path2 )
+            use "*" for state to send all the replicas to the output set ( -f *:/path )
+        -l -- include more columns, otherwise physical path only, automatically on if -a is used
+        -z -- produce gzipped output
+        -s <stats file> -- write stats into JSON file
+           -S <key> -- add dump stats to stats under the key
+        -r <file>   -- file counts per root and store in the file as JSON structure with file counts
+        -m <N files> -- stop after N replicas
+
 XRootD Scanner
 --------------
 
