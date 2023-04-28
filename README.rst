@@ -30,7 +30,7 @@ Another way is to download the package from the GitHub repository and then insta
     $ export PATH=...     # make sure that the place where pip puts the executables is in your PATH
     
 
-Rucio Databse Replocas Table Dump
+Rucio Databse Replicas Table Dump
 ---------------------------------
 
 Censistency Enforcement Toolkit compares contents of the Rucio replicas table to actual state of the RSE.
@@ -77,6 +77,16 @@ XRootD Scanner
     -M <max_files>              - stop scanning the root after so many files were found
     -s <stats_file>             - write final statistics to JSON file
     -r <root count file>        - JSON file with file counds by root
+    
+To use the scanner:
+
+1. "pip install --user rucio-consistency" or "pip3 install --user rucio-consistency"
+2. You may need to add ~/.local/bin" to your PATH
+3. Create or download the CE configuration file. CMS CE configuration is available at: https://cmsweb.cern.ch/rucioconmon/ce/ce_config/ce_config.yaml
+4. Make sure you have valid X.509 proxy, define environment variable X509_USER_PROXY=<file with your proxy>
+5. Run the scanner: "rce_scan -z -c config.yaml -o /output_dir/site_scan T1_DE_KIT_Disk". This will create partitioned list of
+   replicas "/output_dir/site_scan.*.gz"
+
     
 Set Partitioning and Comparison
 -------------------------------
