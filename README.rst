@@ -29,6 +29,8 @@ The process runs periodically for each RSE and consists of the following steps:
 
     a. Declare relicas on the "missing" list (M) as "bad" to Rucio using Rucio client API
     b. Quarantine replicas on the "dark" list (D) using Rucio client API
+    
+The action tools are not included in the toolkit because they include some CMS policies and may be too CMS specific.
 
 Installation
 ------------
@@ -200,6 +202,9 @@ General purpose tool to compare 2 partitioned lists. Requires that both lists ha
 Rucio Replicas Dump
 -------------------
 
+This tool is used to produce a list of replicas for an RSE from the Rucio database replicas table. The output is a
+partitioned list of LFNs.
+
 .. code-block:: shell
 
     $ rce_db_dump [options] -c <config.yaml> <rse_name>
@@ -209,7 +214,7 @@ Rucio Replicas Dump
     -d <db config file> -- required - uses rucio.cfg format. Must contain "default" and "schema" under [databse]
     -v -- verbose
     -n <nparts>
-    -f <state>:<prefix> -- filter files with given state to the files set with prefix
+    -f <state>:<prefix> -- filter replicas with given state to the files set with prefix
         state can be either combination of capital letters or "*" 
         can be repeated  ( -f A:/path1 -f CD:/path2 )
         use "*" for state to send all the files to the output set ( -f *:/path )
