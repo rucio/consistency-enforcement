@@ -10,18 +10,18 @@ The process runs periodically for each RSE and consists of the following steps:
 
 1.  Inconsistencies detection
 
-    a. Dump Rucio replicas table contents. This dump produces 2 lists of LFNs:
+    a.  Dump Rucio replicas table contents. This dump produces 2 lists of LFNs:
     
         * List of Active replicas found in the RSE (active list or BA)
         * List of all replicas found in the RSE (complete list or BC)
         
-    b. Scan the RSE. This is done by running recursive xrootd scanner of the RSE and produces the list of LFNs for files found in the RSE (site list or R)
-    c. Repeat the database dump in exactly the same way at (1). This step produces active the list (AA) and the complete list (AC)
-    d. Compute list of "dark" replicas as the list of replicas found in (R) but not in (BC) or (AC) - replicas which are not supposed to be the the RSE:
+    b.  Scan the RSE. This is done by running recursive xrootd scanner of the RSE and produces the list of LFNs for files found in the RSE (site list or R)
+    c.  Repeat the database dump in exactly the same way at (1). This step produces active the list (AA) and the complete list (AC)
+    d.  Compute list of "dark" replicas as the list of replicas found in (R) but not in (BC) or (AC) - replicas which are not supposed to be the the RSE:
     
         D = R - BC - AC
         
-    e. Compute list of "missing" replicas as the list of replicas in both (BA) and (AA) but not (R):
+    e.  Compute list of "missing" replicas as the list of replicas in both (BA) and (AA) but not (R):
     
         M = (BA*AA) - R
         
