@@ -8,7 +8,7 @@ The objective of the Consistency Enforcement (CE) process is to keep the Rucio d
 is to make sure the set of active file replicas in the Rucio database matches the set of files actually found in the RSE.
 The process runs periodically for each RSE and consists of the following steps:
 
-1. Inconsistencies detection
+1.  Inconsistencies detection
 
     a. Dump Rucio replicas table contents. This dump produces 2 lists of LFNs:
     
@@ -25,7 +25,7 @@ The process runs periodically for each RSE and consists of the following steps:
     
         M = (BA*AA) - R
         
-2. Consistency Enforcement actions
+2.  Consistency Enforcement actions
 
     a. Declare relicas on the "missing" list (M) as "bad" to Rucio using Rucio client API
     b. Quarantine replicas on the "dark" list (D) using Rucio client API
