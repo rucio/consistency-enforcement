@@ -1,5 +1,36 @@
-Consistenty Enforcement Tools
-=============================
+Consistenty Enforcement Toolkit
+===============================
+
+Introduction
+------------
+
+The objective of the Consistency Enforcement (CE) process is to keep the Rucio database and actual contents of an RSE in sync. Namely, the goal
+is to make sure the set of active file replicas in the Rucio database matches the set of files actually found in the RSE.
+The process runs periodically for each RSE and consists of the following steps:
+
+1.  Inconsistencies detection
+
+    a.  Dump Rucio replicas table contents. This dump produces 2 lists of LFNs:
+    
+        * List of Active replicas found in the RSE (active list or BA)
+        * List of all replicas found in the RSE (complete list or BC)
+        
+    b.  Scan the RSE. This is done by running recursive xrootd scanner of the RSE and produces the list of LFNs for files found in the RSE (site list or R)
+    c.  Repeat the database dump in exactly the same way at (1). This step produces active the list (AA) and the complete list (AC)
+    d.  Compute list of "dark" replicas as the list of replicas found in (R) but not in (BC) or (AC) - replicas which are not supposed to be the the RSE:
+    
+        D = R - BC - AC
+        
+    e.  Compute list of "missing" replicas as the list of replicas in both (BA) and (AA) but not (R):
+    
+        M = (BA*AA) - R
+        
+2.  Consistency Enforcement actions
+
+    a. Declare relicas on the "missing" list (M) as "bad" to Rucio using Rucio client API
+    b. Quarantine replicas on the "dark" list (D) using Rucio client API
+    
+The action tools are not included in the toolkit because they include some CMS policies and may be too CMS specific.
 
 Installation
 ------------
@@ -171,6 +202,9 @@ General purpose tool to compare 2 partitioned lists. Requires that both lists ha
 Rucio Replicas Dump
 -------------------
 
+This tool is used to produce a list of replicas for an RSE from the Rucio database replicas table. The output is a
+partitioned list of LFNs.
+
 .. code-block:: shell
 
     $ rce_db_dump [options] -c <config.yaml> <rse_name>
@@ -180,7 +214,7 @@ Rucio Replicas Dump
     -d <db config file> -- required - uses rucio.cfg format. Must contain "default" and "schema" under [databse]
     -v -- verbose
     -n <nparts>
-    -f <state>:<prefix> -- filter files with given state to the files set with prefix
+    -f <state>:<prefix> -- filter replicas with given state to the files set with prefix
         state can be either combination of capital letters or "*" 
         can be repeated  ( -f A:/path1 -f CD:/path2 )
         use "*" for state to send all the files to the output set ( -f *:/path )
