@@ -240,11 +240,17 @@ def main():
                 ignored_files += 1
                 continue
 
+            matched_root = None
+
             for root, root_count in list(root_file_counts.items()):
                 prefix = root + '/' if not root.endswith('/') else root
                 if path.startswith(prefix):
                     root_file_counts[root] = root_count + 1
+                    matched_root = root
                     break
+
+            if not matched_root:
+                continue                # not under any root
 
             words = path.rsplit("/", 1)
             if len(words) == 1:
