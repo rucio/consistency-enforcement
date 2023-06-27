@@ -88,7 +88,9 @@ class Prescanner(Primitive):
         def run(self):
             self.Client = XRootDClient(self.Server, self.IsRedirector, self.ServerRoot, 
                     timeout=self.Timeout, name=f"XRootDClient({self.Root})")
+            print(f"prescanning {self.Server} {self.Root} ...")
             self.Client.prescan(self.Root)
+            print("    will use servers:", self.Client.Servers)
             status, self.Error, _, _ = self.Client.ls(self.Root, False, False)
             self.Failed = status != "OK"
             return not self.Failed
@@ -134,7 +136,6 @@ class Scanner(Task):
         self.WasRecursive = recursive
         self.Subprocess = None
         self.Killed = False
-        self.Started = None
         self.Elapsed = None
         self.RecAttempts = self.MAX_ATTEMPTS_REC if recursive else 0
         self.FlatAttempts = self.MAX_ATTEMPTS_FLAT
@@ -165,7 +166,7 @@ class Scanner(Task):
                 
     def run(self):
         #print("Scanner.run():", self.Master)
-        self.Started = t0 = time.time()
+        t0 = time.time()
         location = self.Location
         if self.RecAttempts > 0:
             recursive = True
@@ -175,7 +176,6 @@ class Scanner(Task):
             self.FlatAttempts -= 1
         self.WasRecursive = recursive
         #self.message("start", stats)
-        stats = "r" if recursive else " "
 
         # Location is relative to the server root, it does start with '/'. E.g. /store/mc/run2
         status, reason, dirs, files = self.Client.ls(self.Location, recursive, self.IncludeSizes, timeout=self.Timeout)
@@ -183,6 +183,7 @@ class Scanner(Task):
         files = list(files)
         dirs = list(dirs)
         self.Elapsed = time.time() - self.Started
+        stats = ("r" if recursive else " ") + " t=%6.1fs" % (self.Elapsed,)
         if status != "OK":
             stats += " " + reason
             self.message(status, stats)
@@ -671,7 +672,7 @@ def main():
                 "root": root,
                 "expected": expected,
                 "start_time":t0,
-                "timeout":config.ScannerTimeout,
+                "timeout":timeout,
                 "root_failed": True,
                 "error": error,
                 "end_time":t1,
