@@ -3,7 +3,7 @@ import re, json, os, os.path, traceback, sys
 import subprocess, time, random, gzip
 
 from rucio_consistency import to_str, Stats, PartitionedList, ScannerConfiguration
-from .xrootd_client import XRootDClient
+from rucio_consistency.xrootd import XRootDClient
 
 Version = "4.0"
 
@@ -657,7 +657,6 @@ def main():
         "end_time": None,
         "status":   "started",
         "files_output_prefix":          output,
-        "dirs_output_prefix":           dir_output,
         "empty_dirs_output_file":       empty_dir_output
     }
     
