@@ -280,7 +280,7 @@ class ScannerMaster(PyThread):
                 report_empty_top=False, list_empty_dirs=self.ListEmptyDirs)
         self.ScannerQueue.addTask(scanner_task)
         while not self.ScannerQueue.isEmpty():
-            self.sleep(HEARTBEAT_INTERVAL)
+            self.sleep(self.HEARTBEAT_INTERVAL)
             if self.MyStats is not None:
                 t = time.time()
                 self.MyStats["heartbeat"] = t
