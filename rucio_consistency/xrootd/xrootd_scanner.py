@@ -1,6 +1,7 @@
 from pythreader import TaskQueue, Task, DEQueue, PyThread, synchronized, ShellCommand, Primitive
 import re, json, os, os.path, traceback, sys
 import subprocess, time, random, gzip
+from datetime import datetime, timezone
 
 from rucio_consistency import to_str, Stats, PartitionedList, ScannerConfiguration
 from rucio_consistency.xrootd import XRootDClient
@@ -468,19 +469,20 @@ def scan_root(rse, config, client, root, root_expected, my_stats, stats, stats_k
 
     t0 = time.time()
     root_stats = {
-       "root": root,
-       "expected": root_expected,
-       "start_time":t0,
-       "timeout":timeout,
-       "recursive_threshold":recursive_threshold,
-       "max_scanners":max_scanners,
-       "ignore_subdirectories": ignore_subdirs,
-       "servers": client.Servers
+        "root": root,
+        "expected": root_expected,
+        "start_time":t0,
+        "timeout":timeout,
+        "recursive_threshold":recursive_threshold,
+        "max_scanners":max_scanners,
+        "ignore_subdirectories": ignore_subdirs,
+        "servers": client.Servers
     }
 
     my_stats["scanning"] = root_stats
     if stats is not None:
         stats.update_section(stats_key, my_stats)
+    next_stats_update = time.time() + 60
 
     remove_prefix = config.RemovePrefix
     add_prefix = config.AddPrefix
@@ -521,6 +523,12 @@ def scan_root(rse, config, client, root, root_expected, my_stats, stats, stats_k
         elif t == 'e' and empty_dirs_file is not None:
             empty_dirs_file.write(logpath)
             empty_dirs_file.write("\n")
+        if stats is not None and time.time() > next_stats_update:
+            t = time.time()
+            root_stats["timestamp"] = t
+            root_stats["timestamp_utc"] = str(datetime.utcfromtimestamp(t))
+            stats.update_section(stats_key, my_stats)
+            next_stats_update += 60
 
     if display_progress:
         master.close_progress()
@@ -644,20 +652,23 @@ def main():
         print(f"Server root is not defined for {rse}. Should be defined as 'server_root'")
         sys.exit(2)
 
+    t = time.time()
     my_stats = {
         "rse":rse,
         "scanner":{
             "type":"xrootd",
             "version":Version
         },
-        "server_root":server_root,
-        "server":server,
-        "roots":[], 
-        "start_time":time.time(),
-        "end_time": None,
-        "status":   "started",
+        "server_root":                  server_root,
+        "server":                       server,
+        "roots":                        [],
+        "start_time":                   t,
+        "end_time":                     None,
+        "status":                       "started",
         "files_output_prefix":          output,
-        "empty_dirs_output_file":       empty_dir_output
+        "empty_dirs_output_file":       empty_dir_output,
+        "heartbeat":                    t,
+        "heartbeat_utc":                str(datetime.utcfromtimestamp(t))
     }
     
     if stats is not None:
