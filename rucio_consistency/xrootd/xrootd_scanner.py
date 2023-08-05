@@ -227,6 +227,7 @@ class ScannerMaster(PyThread):
     MAX_RECURSION_FAILED_COUNT = 5
     REPORT_INTERVAL = 10.0
     RESULTS_BUFFER_SISZE = 100
+    HEARTBEAT_INTERVAL = 60
     
     def __init__(self, client, path_converter, root, root_expected, recursive_threshold, max_scanners, timeout, quiet, display_progress, 
                 stats=None, my_stats=None, max_files=None,
@@ -279,7 +280,7 @@ class ScannerMaster(PyThread):
                 report_empty_top=False, list_empty_dirs=self.ListEmptyDirs)
         self.ScannerQueue.addTask(scanner_task)
         while not self.ScannerQueue.isEmpty():
-            self.sleep(60)
+            self.sleep(HEARTBEAT_INTERVAL)
             if self.MyStats is not None:
                 t = time.time()
                 self.MyStats["heartbeat"] = t
@@ -333,6 +334,7 @@ class ScannerMaster(PyThread):
 
     @synchronized
     def scanner_failed(self, scanner, error):
+        self.wakeup()               # do not sleep for the heatbeat any longer
         path = scanner.Location                
         retry = (scanner.RecAttempts > 0) or (scanner.FlatAttempts > 0)
         if retry:
@@ -347,6 +349,7 @@ class ScannerMaster(PyThread):
 
     @synchronized
     def scanner_succeeded(self, scanner, location, was_recursive, files, dirs, empty_dir_count, empty_dirs):
+        self.wakeup()               # do not sleep for the heatbeat any longer
         if not files and not dirs and was_recursive and scanner.ZeroAttempts > 0:
             scanner.ZeroAttempts -= 1
             print("resubmitted because recursive scan found nothing:", scanner.Location)
