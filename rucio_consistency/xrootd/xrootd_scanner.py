@@ -525,8 +525,8 @@ def scan_root(rse, config, client, root, root_expected, my_stats, stats, stats_k
             empty_dirs_file.write("\n")
         if stats is not None and time.time() > next_stats_update:
             t = time.time()
-            root_stats["timestamp"] = t
-            root_stats["timestamp_utc"] = str(datetime.utcfromtimestamp(t))
+            my_stats["heartbeat"] = t
+            my_stats["heartbeat_utc"] = str(datetime.utcfromtimestamp(t))
             stats.update_section(stats_key, my_stats)
             next_stats_update += 60
 
