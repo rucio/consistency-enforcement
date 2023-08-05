@@ -229,7 +229,7 @@ class ScannerMaster(PyThread):
     RESULTS_BUFFER_SISZE = 100
     
     def __init__(self, client, path_converter, root, root_expected, recursive_threshold, max_scanners, timeout, quiet, display_progress, 
-                stats=None, stats_key=None, max_files=None,
+                stats=None, my_stats=None, max_files=None,
                 include_sizes=True, ignore_list=[], list_empty_dirs=False):
         PyThread.__init__(self)
         self.RecursiveThreshold = recursive_threshold
@@ -262,8 +262,7 @@ class ScannerMaster(PyThread):
         self.RootExpected = root_expected
         self.ListEmptyDirs = list_empty_dirs
         self.Stats = stats
-        self.StatsKey = stats_key
-        self.MyStats = stats[stats_key] if stats is not None else None
+        self.MyStats = my_stats
 
     def taskFailed(self, queue, task, exc_type, exc_value, tb):
         traceback.print_exception(exc_type, exc_value, tb, file=sys.stderr)
@@ -500,6 +499,7 @@ def scan_root(rse, config, client, root, root_expected, my_stats, stats, stats_k
     path_converter = PathConverter(server_root, remove_prefix, add_prefix, root)
 
     master = ScannerMaster(client, path_converter, root, root_expected, recursive_threshold, max_scanners, timeout, quiet, display_progress,
+            stats=stats, my_stats=my_stats,
             max_files = max_files, include_sizes=include_sizes, list_empty_dirs=empty_dirs_file is not None,
             ignore_list = ignore_list)
 
