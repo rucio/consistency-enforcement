@@ -227,7 +227,7 @@ class ScannerMaster(PyThread):
     MAX_RECURSION_FAILED_COUNT = 5
     REPORT_INTERVAL = 10.0
     RESULTS_BUFFER_SISZE = 100
-    HEARTBEAT_INTERVAL = 300
+    HEARTBEAT_INTERVAL = None
     
     def __init__(self, client, path_converter, root, root_expected, recursive_threshold, max_scanners, timeout, quiet, display_progress, 
                 stats=None, my_stats=None, max_files=None,
@@ -279,13 +279,14 @@ class ScannerMaster(PyThread):
         scanner_task = Scanner(self, self.Client, self.Timeout, self.Root, self.RecursiveThreshold == 0, include_sizes=self.IncludeSizes, 
                 report_empty_top=False, list_empty_dirs=self.ListEmptyDirs)
         self.ScannerQueue.addTask(scanner_task)
-        while not self.ScannerQueue.isEmpty():
-            self.sleep(self.HEARTBEAT_INTERVAL)
-            if self.MyStats is not None:
-                t = time.time()
-                self.MyStats["heartbeat"] = t
-                self.MyStats["heartbeat_utc"] = str(datetime.utcfromtimestamp(t))
-                self.Stats.save()
+        if self.HEARTBEAT_INTERVAL is not None:
+            while not self.ScannerQueue.isEmpty():
+                self.sleep(self.HEARTBEAT_INTERVAL)
+                if self.MyStats is not None:
+                    t = time.time()
+                    self.MyStats["heartbeat"] = t
+                    self.MyStats["heartbeat_utc"] = str(datetime.utcfromtimestamp(t))
+                    self.Stats.save()
         self.ScannerQueue.waitUntilEmpty()
         self.Results.close()
         self.ScannerQueue.Delegate = None       # detach for garbage collection
