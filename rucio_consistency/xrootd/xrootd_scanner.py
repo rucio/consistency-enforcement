@@ -227,7 +227,7 @@ class ScannerMaster(PyThread):
     MAX_RECURSION_FAILED_COUNT = 5
     REPORT_INTERVAL = 10.0
     RESULTS_BUFFER_SISZE = 100
-    HEARTBEAT_INTERVAL = None
+    HEARTBEAT_INTERVAL = 60
     
     def __init__(self, client, path_converter, root, root_expected, recursive_threshold, max_scanners, timeout, quiet, display_progress, 
                 stats=None, my_stats=None, max_files=None,
