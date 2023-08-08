@@ -1,6 +1,5 @@
 from pythreader import TaskQueue, Task, DEQueue, PyThread, synchronized, ShellCommand, Primitive
-import re, json, os, os.path, traceback, sys
-import subprocess, time, random, gzip
+import re, json, os, os.path, traceback, sys, time, random, gzip
 from datetime import datetime, timezone
 
 from rucio_consistency import to_str, Stats, PartitionedList, ScannerConfiguration
@@ -281,7 +280,7 @@ class ScannerMaster(PyThread):
         self.ScannerQueue.addTask(scanner_task)
         if self.HEARTBEAT_INTERVAL is not None:
             while not self.ScannerQueue.isEmpty():
-                self.sleep(self.HEARTBEAT_INTERVAL)
+                time.sleep(self.HEARTBEAT_INTERVAL)
                 if self.MyStats is not None:
                     t = time.time()
                     self.MyStats["heartbeat"] = t
