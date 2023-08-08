@@ -279,13 +279,14 @@ class ScannerMaster(PyThread):
         scanner_task = Scanner(self, self.Client, self.Timeout, self.Root, self.RecursiveThreshold == 0, include_sizes=self.IncludeSizes, 
                 report_empty_top=False, list_empty_dirs=self.ListEmptyDirs)
         self.ScannerQueue.addTask(scanner_task)
-        while not self.ScannerQueue.isEmpty():
-            self.sleep(self.HEARTBEAT_INTERVAL)
-            if self.MyStats is not None:
-                t = time.time()
-                self.MyStats["heartbeat"] = t
-                self.MyStats["heartbeat_utc"] = str(datetime.utcfromtimestamp(t))
-                self.Stats.save()
+        if self.HEARTBEAT_INTERVAL is not None:
+            while not self.ScannerQueue.isEmpty():
+                self.sleep(self.HEARTBEAT_INTERVAL)
+                if self.MyStats is not None:
+                    t = time.time()
+                    self.MyStats["heartbeat"] = t
+                    self.MyStats["heartbeat_utc"] = str(datetime.utcfromtimestamp(t))
+                    self.Stats.save()
         self.ScannerQueue.waitUntilEmpty()
         self.Results.close()
         self.ScannerQueue.Delegate = None       # detach for garbage collection
@@ -537,12 +538,6 @@ def scan_root(rse, config, client, root, root_expected, my_stats, stats, stats_k
         elif t == 'e' and empty_dirs_file is not None:
             empty_dirs_file.write(logpath)
             empty_dirs_file.write("\n")
-        if stats is not None and time.time() > next_stats_update:
-            t = time.time()
-            my_stats["heartbeat"] = t
-            my_stats["heartbeat_utc"] = str(datetime.utcfromtimestamp(t))
-            stats.update_section(stats_key, my_stats)
-            next_stats_update += 60
 
     if display_progress:
         master.close_progress()
