@@ -229,7 +229,7 @@ class ScannerMaster(PyThread):
     
     def __init__(self, client, path_converter, root, root_expected, recursive_threshold, max_scanners, timeout, quiet, display_progress, 
                 max_files = None, include_sizes=True, ignore_list=[], 
-                files_out=None, dirs_out=None, empty_dirs_out=None, my_stats=None):
+                files_out=None, dirs_out=None, empty_dirs_out=None, my_stats=None, stats=None):
         PyThread.__init__(self)
         self.RecursiveThreshold = recursive_threshold
         self.PathConverter = path_converter
@@ -264,6 +264,7 @@ class ScannerMaster(PyThread):
         self.DirsOut = dirs_out
         self.EmptyDirsOut = empty_dirs_out
         self.MyStats = my_stats
+        self.Stats = stats
 
     def taskFailed(self, queue, task, exc_type, exc_value, tb):
         traceback.print_exception(exc_type, exc_value, tb, file=sys.stderr)
@@ -283,7 +284,7 @@ class ScannerMaster(PyThread):
                     t = time.time()
                     self.MyStats["heartbeat"] = t
                     self.MyStats["heartbeat_utc"] = datetime.utcfromtimestamp(t).strftime("%Y-%m-%d %H:%M:%S UTC")
-                    self.MyStats.save()
+                    self.Stats.save()
         self.ScannerQueue.waitUntilEmpty()
         self.Results.close()
         self.ScannerQueue.Delegate = None       # detach for garbage collection
@@ -543,7 +544,7 @@ def scan_root(rse, config, client, root, root_expected, my_stats, stats, stats_k
     path_converter = PathConverter(server_root, remove_prefix, add_prefix, root)
 
     master = ScannerMaster(client, path_converter, root, root_expected, recursive_threshold, max_scanners, timeout, quiet, display_progress,
-            my_stats=my_stats,
+            stats=stats, my_stats=my_stats,
             max_files = max_files, include_sizes=include_sizes,
             files_out=files_list, empty_dirs_out=empty_dirs_list, dirs_out=dirs_list,
             ignore_list = ignore_list)
