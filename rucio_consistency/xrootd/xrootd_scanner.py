@@ -672,10 +672,11 @@ def main():
     output = opts.get("-o","out.list")
 
     out_list = PartitionedList.create(nparts, output, zout)
-
-    empty_dirs_list = opts.get("-e")
-    if empty_dirs_list:
-        empty_dirs_list = PartitionedList.create(nparts, empty_dirs_list, zout)
+    empty_dirs_list = None
+    
+    empty_dirs_list_prefix = opts.get("-e")
+    if empty_dirs_list_prefix:
+        empty_dirs_list = PartitionedList.create(nparts, empty_dirs_list_prefix, zout)
 
     server = config.Server
     server_root = config.ServerRoot
@@ -698,7 +699,7 @@ def main():
         "end_time":                     None,
         "status":                       "started",
         "files_output_prefix":          output,
-        "empty_dirs_output_file":       empty_dir_output,
+        "empty_dirs_list_prefix":       empty_dirs_list_prefix,
         "heartbeat":                    t,
         "heartbeat_utc":                str(datetime.utcfromtimestamp(t))
     }
