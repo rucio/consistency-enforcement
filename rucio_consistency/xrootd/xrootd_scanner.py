@@ -310,7 +310,8 @@ class ScannerMaster(PyThread):
 
             if self.MaxFiles is None or self.NFiles < self.MaxFiles:
                 self.ScannerQueue.addTask(
-                    Scanner(self, self.Client, self.Timeout, logpath, allow_recursive, include_sizes=self.IncludeSizes)
+                    Scanner(self, self.Client, self.Timeout, logpath, allow_recursive, include_sizes=self.IncludeSizes,
+                    list_empty_dirs=self.ListEmptyDirs)
                 )
                 self.NToScan += 1
         #print("  added")
