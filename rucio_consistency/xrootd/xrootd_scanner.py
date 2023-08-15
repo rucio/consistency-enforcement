@@ -197,7 +197,7 @@ class Scanner(Task):
         #stats = "%1s %7.3fs" % ("r" if recursive else " ", self.Elapsed)
     
         empty_dirs = None
-        empty_dir_count = -1
+        empty_dir_count = 0
         if self.ListEmptyDirs:
             #
             # create the set of directories, which contain no files, recursively
