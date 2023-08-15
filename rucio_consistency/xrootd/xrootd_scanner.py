@@ -227,7 +227,8 @@ class ScannerMaster(PyThread):
     RESULTS_BUFFER_SISZE = 100
     
     def __init__(self, client, path_converter, root, root_expected, recursive_threshold, max_scanners, timeout, quiet, display_progress, 
-                max_files = None, include_sizes=True, ignore_list=[], list_empty_dirs=False, files_out=None, dirs_out=None, empty_dirs_out=None):
+                max_files = None, include_sizes=True, ignore_list=[], 
+                list_empty_dirs=False, files_out=None, dirs_out=None, empty_dirs_out=None):
         PyThread.__init__(self)
         self.RecursiveThreshold = recursive_threshold
         self.PathConverter = path_converter
@@ -271,7 +272,8 @@ class ScannerMaster(PyThread):
         #
         #server, location, recursive, timeout
         scanner_task = Scanner(self, self.Client, self.Timeout, self.Root, self.RecursiveThreshold == 0, include_sizes=self.IncludeSizes, 
-                report_empty_top=False, list_empty_dirs=self.ListEmptyDirs)
+                report_empty_top=False, list_empty_dirs=self.ListEmptyDirs,
+                files_out=self.FilesOut, dirs_out=self.DirsOut, empty_dirs_out=self.EmptyDirsOut)
         self.ScannerQueue.addTask(scanner_task)
         self.ScannerQueue.waitUntilEmpty()
         self.Results.close()
@@ -496,7 +498,7 @@ def path_to_lfn(path, path_prefix, remove_prefix, add_prefix, path_filter, rewri
 def scan_root(rse, config, client, root, root_expected, my_stats, stats, stats_key, 
             quiet, display_progress, max_files,
             recursive_threshold, max_scanners, timeout,
-            file_list, empty_dirs_file,
+            file_list, empty_dirs_list, dirs_list,
             ignore_failed_directories, include_sizes):
 
     failed = root_failed = False
@@ -528,7 +530,8 @@ def scan_root(rse, config, client, root, root_expected, my_stats, stats, stats_k
     path_converter = PathConverter(server_root, remove_prefix, add_prefix, root)
 
     master = ScannerMaster(client, path_converter, root, root_expected, recursive_threshold, max_scanners, timeout, quiet, display_progress,
-            max_files = max_files, include_sizes=include_sizes, list_empty_dirs=empty_dirs_file is not None,
+            max_files = max_files, include_sizes=include_sizes, list_empty_dirs=empty_dirs_list is not None,
+            files_out=files_list, empty_dirs_out=empty_dirs_list, dirs_out=dirs_list,
             ignore_list = ignore_list)
 
     path_filter = None          # -- obsolete -- config.scanner_filter(rse)
@@ -550,18 +553,7 @@ def scan_root(rse, config, client, root, root_expected, my_stats, stats, stats_k
             print("    ", p)
 
     master.start()
-
-    path_prefix = server_root
-    if not path_prefix.endswith("/"):
-        path_prefix += "/"
-
-    for t, logpath in master.paths():
-        # here, path is absolute path, which includes site root
-        if t == 'f':
-            file_list.add(logpath)             
-        elif t == 'e' and empty_dirs_file is not None:
-            empty_dirs_file.write(logpath)
-            empty_dirs_file.write("\n")
+    master.join()
 
     if display_progress:
         master.close_progress()
@@ -669,14 +661,9 @@ def main():
 
     out_list = PartitionedList.create(nparts, output, zout)
 
-    empty_dirs_file = None
     empty_dir_output = opts.get("-e")
     if empty_dir_output:
-        if zout:
-            if not empty_dir_output.endswith(".gz"):    empty_dir_output += ".gz"
-            empty_dirs_file = gzip.open(empty_dir_output, "wt")
-        else:
-            empty_dirs_file = open(empty_dir_output, "w")
+        empty_dir_output = PartitionedList.create(nparts, empty_dir_output, zout)
 
     server = config.Server
     server_root = config.ServerRoot
@@ -737,8 +724,9 @@ def main():
                 failed = scan_root(rse, config, client, root, expected, my_stats, stats, stats_key, 
                         quiet, display_progress, max_files,
                         recursive_threshold, max_scanners, timeout,
-                        out_list, empty_dirs_file,
+                        out_list, empty_dir_output, None, 
                         ignore_directory_scan_errors, include_sizes)
+
             except:
                 exc = traceback.format_exc()
                 print(exc)
