@@ -127,7 +127,8 @@ class Scanner(Task):
     MAX_ATTEMPTS_FLAT = 3
     MAX_REC_ZERO_RETRY = 1
 
-    def __init__(self, master, client, timeout, location, recursive, include_sizes=True, report_empty_top=True, list_empty_dirs=False):
+    def __init__(self, master, client, timeout, location, recursive, include_sizes=True, report_empty_top=True, 
+            list_empty_dirs=False):
         Task.__init__(self)
         self.Client = client
         self.Master = master
@@ -143,9 +144,8 @@ class Scanner(Task):
         self.IncludeSizes = include_sizes
         self.ReportEmptyTop = report_empty_top
         self.Timeout = timeout
-        self.ListEmptyDirs = list_empty_dirs                # whether to produce the list of empty dirs or just count them
-        #print("Scanner create for location:", self.Location)
-
+        self.ListEmptyDirs = list_empty_dirs
+        
     def __str__(self):
         return "Scanner(%s)" % (self.Location,)
 
@@ -273,8 +273,7 @@ class ScannerMaster(PyThread):
         #
         #server, location, recursive, timeout
         scanner_task = Scanner(self, self.Client, self.Timeout, self.Root, self.RecursiveThreshold == 0, include_sizes=self.IncludeSizes, 
-                report_empty_top=False, list_empty_dirs=self.ListEmptyDirs,
-                files_out=self.FilesOut, dirs_out=self.DirsOut, empty_dirs_out=self.EmptyDirsOut)
+                report_empty_top=False, list_empty_dirs=self.ListEmptyDirs)
         self.ScannerQueue.addTask(scanner_task)
         if self.HEARTBEAT_INTERVAL is not None:
             while not self.ScannerQueue.isEmpty():
