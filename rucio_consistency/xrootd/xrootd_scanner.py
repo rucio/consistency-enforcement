@@ -265,6 +265,7 @@ class ScannerMaster(PyThread):
         self.EmptyDirsOut = empty_dirs_out
         self.MyStats = my_stats
         self.Stats = stats
+        self.NextHeartbeat = 0
 
     def taskFailed(self, queue, task, exc_type, exc_value, tb):
         traceback.print_exception(exc_type, exc_value, tb, file=sys.stderr)
@@ -279,12 +280,14 @@ class ScannerMaster(PyThread):
         self.ScannerQueue.addTask(scanner_task)
         if self.HEARTBEAT_INTERVAL is not None:
             while not self.ScannerQueue.isEmpty():
-                time.sleep(self.HEARTBEAT_INTERVAL)
-                if self.MyStats is not None:
-                    t = time.time()
-                    self.MyStats["heartbeat"] = t
-                    self.MyStats["heartbeat_utc"] = datetime.utcfromtimestamp(t).strftime("%Y-%m-%d %H:%M:%S UTC")
-                    self.Stats.save()
+                self.sleep(self.HEARTBEAT_INTERVAL)
+                t = time.time()
+                if t >= self.NextHeartbeat:
+                    if self.MyStats is not None:
+                        self.MyStats["heartbeat"] = t
+                        self.MyStats["heartbeat_utc"] = datetime.utcfromtimestamp(t).strftime("%Y-%m-%d %H:%M:%S UTC")
+                        self.Stats.save()
+                    self.NextHeartbeat += self.HEARTBEAT_INTERVAL
         self.ScannerQueue.waitUntilEmpty()
         self.Results.close()
         self.ScannerQueue.Delegate = None       # detach for garbage collection
@@ -392,6 +395,7 @@ class ScannerMaster(PyThread):
 
     @synchronized
     def taskEnded(self, queue, scanner, results):
+        self.wakeup()               # do not sleep for the heatbeat any longer
         status, dirs, files, empty_dirs, error = results
         was_recursive = scanner.WasRecursive
         if not files and not dirs and was_recursive and scanner.ZeroAttempts > 0:
