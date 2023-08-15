@@ -509,7 +509,7 @@ def path_to_lfn(path, path_prefix, remove_prefix, add_prefix, path_filter, rewri
 def scan_root(rse, config, client, root, root_expected, my_stats, stats, stats_key, 
             quiet, display_progress, max_files,
             recursive_threshold, max_scanners, timeout,
-            file_list, empty_dirs_list, dirs_list,
+            files_list, empty_dirs_list, dirs_list,
             ignore_failed_directories, include_sizes):
 
     failed = root_failed = False
