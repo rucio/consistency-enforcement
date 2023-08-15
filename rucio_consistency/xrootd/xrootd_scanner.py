@@ -225,11 +225,11 @@ class ScannerMaster(PyThread):
     MAX_RECURSION_FAILED_COUNT = 5
     REPORT_INTERVAL = 10.0
     RESULTS_BUFFER_SISZE = 100
-    HEARTBEAT_INTERVAL = None
+    HEARTBEAT_INTERVAL = 60
     
     def __init__(self, client, path_converter, root, root_expected, recursive_threshold, max_scanners, timeout, quiet, display_progress, 
                 max_files = None, include_sizes=True, ignore_list=[], 
-                files_out=None, dirs_out=None, empty_dirs_out=None):
+                files_out=None, dirs_out=None, empty_dirs_out=None, my_stats=None):
         PyThread.__init__(self)
         self.RecursiveThreshold = recursive_threshold
         self.PathConverter = path_converter
@@ -263,7 +263,7 @@ class ScannerMaster(PyThread):
         self.FilesOut = files_out
         self.DirsOut = dirs_out
         self.EmptyDirsOut = empty_dirs_out
-        self.MyStats = None         # for now
+        self.MyStats = my_stats
 
     def taskFailed(self, queue, task, exc_type, exc_value, tb):
         traceback.print_exception(exc_type, exc_value, tb, file=sys.stderr)
@@ -704,7 +704,7 @@ def main():
         "files_output_prefix":          output,
         "empty_dirs_list_prefix":       empty_dirs_list_prefix,
         "heartbeat":                    t,
-        "heartbeat_utc":                str(datetime.utcfromtimestamp(t))
+        "heartbeat_utc":                datetime.utcfromtimestamp(t).strftime("%Y-%m-%d %H:%M:%S UTC")
     }
     
     if stats is not None:
