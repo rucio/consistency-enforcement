@@ -229,7 +229,7 @@ class ScannerMaster(PyThread):
     
     def __init__(self, client, path_converter, root, root_expected, recursive_threshold, max_scanners, timeout, quiet, display_progress, 
                 max_files = None, include_sizes=True, ignore_list=[], 
-                list_empty_dirs=False, files_out=None, dirs_out=None, empty_dirs_out=None):
+                files_out=None, dirs_out=None, empty_dirs_out=None):
         PyThread.__init__(self)
         self.RecursiveThreshold = recursive_threshold
         self.PathConverter = path_converter
@@ -259,7 +259,7 @@ class ScannerMaster(PyThread):
         self.TotalSize = 0.0 if include_sizes else None                  # Megabytes
         self.Timeout = timeout
         self.RootExpected = root_expected
-        self.ListEmptyDirs = list_empty_dirs
+        self.ListEmptyDirs = empty_dirs_out is not None
         self.FilesOut = files_out
         self.DirsOut = dirs_out
         self.EmptyDirsOut = empty_dirs_out
@@ -541,7 +541,7 @@ def scan_root(rse, config, client, root, root_expected, my_stats, stats, stats_k
     path_converter = PathConverter(server_root, remove_prefix, add_prefix, root)
 
     master = ScannerMaster(client, path_converter, root, root_expected, recursive_threshold, max_scanners, timeout, quiet, display_progress,
-            max_files = max_files, include_sizes=include_sizes, list_empty_dirs=empty_dirs_list is not None,
+            max_files = max_files, include_sizes=include_sizes,
             files_out=files_list, empty_dirs_out=empty_dirs_list, dirs_out=dirs_list,
             ignore_list = ignore_list)
 
@@ -676,6 +676,8 @@ def main():
     empty_dirs_list_prefix = opts.get("-e")
     if empty_dirs_list_prefix:
         empty_dirs_list = PartitionedList.create(nparts, empty_dirs_list_prefix, zout)
+        
+    print("empty_dirs_list:", empty_dirs_list)
 
     server = config.Server
     server_root = config.ServerRoot
