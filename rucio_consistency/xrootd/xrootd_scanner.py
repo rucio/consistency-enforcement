@@ -673,9 +673,9 @@ def main():
 
     out_list = PartitionedList.create(nparts, output, zout)
 
-    empty_dir_output = opts.get("-e")
-    if empty_dir_output:
-        empty_dir_output = PartitionedList.create(nparts, empty_dir_output, zout)
+    empty_dirs_list = opts.get("-e")
+    if empty_dirs_list:
+        empty_dirs_list = PartitionedList.create(nparts, empty_dirs_list, zout)
 
     server = config.Server
     server_root = config.ServerRoot
@@ -739,7 +739,7 @@ def main():
                 failed = scan_root(rse, config, client, root, expected, my_stats, stats, stats_key, 
                         quiet, display_progress, max_files,
                         recursive_threshold, max_scanners, timeout,
-                        out_list, empty_dir_output, None, 
+                        out_list, empty_dirs_list, None, 
                         ignore_directory_scan_errors, include_sizes)
 
             except:
@@ -755,8 +755,8 @@ def main():
                 break
 
         out_list.close()
-        if empty_dirs_file is not None:
-            empty_dirs_file.close()
+        if empty_dirs_list is not None:
+            empty_dirs_list.close()
 
         total_files = sum(root_stats["files"] for root_stats in my_stats["roots"])
 
