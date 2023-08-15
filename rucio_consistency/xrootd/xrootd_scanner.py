@@ -227,7 +227,7 @@ class ScannerMaster(PyThread):
     MAX_RECURSION_FAILED_COUNT = 5
     REPORT_INTERVAL = 10.0
     RESULTS_BUFFER_SISZE = 100
-    HEARTBEAT_INTERVAL = 60
+    HEARTBEAT_INTERVAL = None
     
     def __init__(self, client, path_converter, root, root_expected, recursive_threshold, max_scanners, timeout, quiet, display_progress, 
                 max_files = None, include_sizes=True, ignore_list=[], 
@@ -265,6 +265,7 @@ class ScannerMaster(PyThread):
         self.FilesOut = files_out
         self.DirsOut = dirs_out
         self.EmptyDirsOut = empty_dirs_out
+        self.MyStats = None         # for now
 
     def taskFailed(self, queue, task, exc_type, exc_value, tb):
         traceback.print_exception(exc_type, exc_value, tb, file=sys.stderr)
@@ -400,16 +401,6 @@ class ScannerMaster(PyThread):
             self.ScannerQueue.addTask(scanner)
             return
 
-        self.NScanned += 1
-        for path, size in files:
-            logpath = self.PathConverter.path_to_logpath(path)
-            self.NFiles += 1
-            if self.FilesOut is not None and not self.file_ignored(logpath):
-                self.FilesOut.add(logpath)
-                self.TotalSize += size
-            else:
-                self.IgnoredFiles += 1
-
         for path, size in dirs:
             self.NDirectories += 1
             logpath = self.PathConverter.path_to_logpath(path)
@@ -421,6 +412,16 @@ class ScannerMaster(PyThread):
                 self.DirsOut.add(logpath)
             if not was_recursive and not ignored:
                 self.addDirectoryToScan(logpath, True)
+
+        self.NScanned += 1
+        for path, size in files:
+            logpath = self.PathConverter.path_to_logpath(path)
+            self.NFiles += 1
+            if self.FilesOut is not None and not self.file_ignored(logpath):
+                self.FilesOut.add(logpath)
+                self.TotalSize += size
+            else:
+                self.IgnoredFiles += 1
 
         if empty_dirs:
             self.NEmptyDirs += len(empty_dirs)
