@@ -284,7 +284,7 @@ class ScannerMaster(PyThread):
                 if self.MyStats is not None:
                     t = time.time()
                     self.MyStats["heartbeat"] = t
-                    self.MyStats["heartbeat_utc"] = str(datetime.utcfromtimestamp(t))
+                    self.MyStats["heartbeat_utc"] = datetime.utcfromtimestamp(t).strftime("%Y-%m-%d %H:%M:%S UTC")
                     self.Stats.save()
         self.ScannerQueue.waitUntilEmpty()
         self.Results.close()
