@@ -146,8 +146,6 @@ class Scanner(Task):
         self.Timeout = timeout
         self.ListEmptyDirs = list_empty_dirs
         
-        print("Scanner(", self.Location, "): list_empty_dirs:", list_empty_dirs)
-        
     def __str__(self):
         return "Scanner(%s)" % (self.Location,)
 
