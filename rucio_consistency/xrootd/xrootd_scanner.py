@@ -283,7 +283,7 @@ class ScannerMaster(PyThread):
                     t = time.time()
                     self.MyStats["heartbeat"] = t
                     self.MyStats["heartbeat_utc"] = datetime.utcfromtimestamp(t).strftime("%Y-%m-%d %H:%M:%S UTC")
-                    self.Stats.save()
+                    self.MyStats.save()
         self.ScannerQueue.waitUntilEmpty()
         self.Results.close()
         self.ScannerQueue.Delegate = None       # detach for garbage collection
