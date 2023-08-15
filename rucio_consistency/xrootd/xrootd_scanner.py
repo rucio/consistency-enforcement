@@ -1,6 +1,6 @@
 from pythreader import TaskQueue, Task, DEQueue, PyThread, synchronized, ShellCommand, Primitive
-import re, json, os, os.path, traceback, sys
-import subprocess, time, random, gzip
+import re, json, os, os.path, traceback, sys, time, random, gzip
+from datetime import datetime, timezone
 
 from rucio_consistency import to_str, Stats, PartitionedList, ScannerConfiguration
 from rucio_consistency.xrootd import XRootDClient
@@ -226,8 +226,10 @@ class ScannerMaster(PyThread):
     MAX_RECURSION_FAILED_COUNT = 5
     REPORT_INTERVAL = 10.0
     RESULTS_BUFFER_SISZE = 100
+    HEARTBEAT_INTERVAL = 60
     
-    def __init__(self, client, path_converter, root, root_expected, recursive_threshold, max_scanners, timeout, quiet, display_progress, max_files = None,
+    def __init__(self, client, path_converter, root, root_expected, recursive_threshold, max_scanners, timeout, quiet, display_progress, 
+                stats=None, my_stats=None, max_files=None,
                 include_sizes=True, ignore_list=[], list_empty_dirs=False):
         PyThread.__init__(self)
         self.RecursiveThreshold = recursive_threshold
@@ -259,6 +261,8 @@ class ScannerMaster(PyThread):
         self.Timeout = timeout
         self.RootExpected = root_expected
         self.ListEmptyDirs = list_empty_dirs
+        self.Stats = stats
+        self.MyStats = my_stats
 
     def taskFailed(self, queue, task, exc_type, exc_value, tb):
         traceback.print_exception(exc_type, exc_value, tb, file=sys.stderr)
@@ -274,6 +278,14 @@ class ScannerMaster(PyThread):
         scanner_task = Scanner(self, self.Client, self.Timeout, self.Root, self.RecursiveThreshold == 0, include_sizes=self.IncludeSizes, 
                 report_empty_top=False, list_empty_dirs=self.ListEmptyDirs)
         self.ScannerQueue.addTask(scanner_task)
+        if self.HEARTBEAT_INTERVAL is not None:
+            while not self.ScannerQueue.isEmpty():
+                time.sleep(self.HEARTBEAT_INTERVAL)
+                if self.MyStats is not None:
+                    t = time.time()
+                    self.MyStats["heartbeat"] = t
+                    self.MyStats["heartbeat_utc"] = datetime.utcfromtimestamp(t).strftime("%Y-%m-%d %H:%M:%S UTC")
+                    self.Stats.save()
         self.ScannerQueue.waitUntilEmpty()
         self.Results.close()
         self.ScannerQueue.Delegate = None       # detach for garbage collection
@@ -322,6 +334,7 @@ class ScannerMaster(PyThread):
 
     @synchronized
     def scanner_failed(self, scanner, error):
+        self.wakeup()               # do not sleep for the heatbeat any longer
         path = scanner.Location                
         retry = (scanner.RecAttempts > 0) or (scanner.FlatAttempts > 0)
         if retry:
@@ -336,6 +349,7 @@ class ScannerMaster(PyThread):
 
     @synchronized
     def scanner_succeeded(self, scanner, location, was_recursive, files, dirs, empty_dir_count, empty_dirs):
+        self.wakeup()               # do not sleep for the heatbeat any longer
         if not files and not dirs and was_recursive and scanner.ZeroAttempts > 0:
             scanner.ZeroAttempts -= 1
             print("resubmitted because recursive scan found nothing:", scanner.Location)
@@ -468,25 +482,27 @@ def scan_root(rse, config, client, root, root_expected, my_stats, stats, stats_k
 
     t0 = time.time()
     root_stats = {
-       "root": root,
-       "expected": root_expected,
-       "start_time":t0,
-       "timeout":timeout,
-       "recursive_threshold":recursive_threshold,
-       "max_scanners":max_scanners,
-       "ignore_subdirectories": ignore_subdirs,
-       "servers": client.Servers
+        "root": root,
+        "expected": root_expected,
+        "start_time":t0,
+        "timeout":timeout,
+        "recursive_threshold":recursive_threshold,
+        "max_scanners":max_scanners,
+        "ignore_subdirectories": ignore_subdirs,
+        "servers": client.Servers
     }
 
     my_stats["scanning"] = root_stats
     if stats is not None:
         stats.update_section(stats_key, my_stats)
+    next_stats_update = time.time() + 60
 
     remove_prefix = config.RemovePrefix
     add_prefix = config.AddPrefix
     path_converter = PathConverter(server_root, remove_prefix, add_prefix, root)
 
     master = ScannerMaster(client, path_converter, root, root_expected, recursive_threshold, max_scanners, timeout, quiet, display_progress,
+            stats=stats, my_stats=my_stats,
             max_files = max_files, include_sizes=include_sizes, list_empty_dirs=empty_dirs_file is not None,
             ignore_list = ignore_list)
 
@@ -644,20 +660,23 @@ def main():
         print(f"Server root is not defined for {rse}. Should be defined as 'server_root'")
         sys.exit(2)
 
+    t = time.time()
     my_stats = {
         "rse":rse,
         "scanner":{
             "type":"xrootd",
             "version":Version
         },
-        "server_root":server_root,
-        "server":server,
-        "roots":[], 
-        "start_time":time.time(),
-        "end_time": None,
-        "status":   "started",
+        "server_root":                  server_root,
+        "server":                       server,
+        "roots":                        [],
+        "start_time":                   t,
+        "end_time":                     None,
+        "status":                       "started",
         "files_output_prefix":          output,
-        "empty_dirs_output_file":       empty_dir_output
+        "empty_dirs_output_file":       empty_dir_output,
+        "heartbeat":                    t,
+        "heartbeat_utc":                str(datetime.utcfromtimestamp(t))
     }
     
     if stats is not None:
