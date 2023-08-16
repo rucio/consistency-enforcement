@@ -1,6 +1,7 @@
 from pythreader import TaskQueue, Task, DEQueue, PyThread, synchronized, ShellCommand, Primitive
 import re, json, os, os.path, traceback, sys, time, random, gzip
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
+from hashlib import md5
 
 from rucio_consistency import to_str, Stats, PartitionedList, ScannerConfiguration
 from rucio_consistency.xrootd import XRootDClient
@@ -634,7 +635,7 @@ def main():
     import getopt, sys, time
 
     t0 = time.time()    
-    opts, args = getopt.getopt(sys.argv[1:], "t:m:o:R:n:c:vqM:s:S:zkxe:r:")
+    opts, args = getopt.getopt(sys.argv[1:], "t:m:o:R:n:c:vqM:s:S:zkxe:r:E:")
     opts = dict(opts)
     
     if len(args) != 1 or not "-c" in opts:
@@ -682,11 +683,19 @@ def main():
     empty_dirs_list = None
     
     empty_dirs_list_prefix = opts.get("-e")
+    if empty_dirs_list_prefix and "-E" in opts:
+        modulo = int(opts["-E"])
+        rse_hash = int.from_bytes(md5(rse.encode("utf-8")).digest())
+        day_in_year = date.today().toordinal()
+        if day_in_year % modulo != rse_hash % modulo:
+            empty_dirs_list_prefix = None
+        else:
+            print("Empty directories list will not be computed because the day does not match the -E option value")
+
     if empty_dirs_list_prefix:
+        print("Empty directories list will be computed and stored in:", empty_dirs_list_prefix)
         empty_dirs_list = PartitionedList.create(nparts, empty_dirs_list_prefix, zout)
         
-    print("empty_dirs_list:", empty_dirs_list)
-
     server = config.Server
     server_root = config.ServerRoot
     include_sizes = config.IncludeSizes and not "-x" in opts
