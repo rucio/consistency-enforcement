@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from rucio_consistency import to_str, Stats, PartitionedList, ScannerConfiguration
 from rucio_consistency.xrootd import XRootDClient
 
-Version = "4.0"
+Version = "5.0"
 
 GB = 1024*1024*1024
 
