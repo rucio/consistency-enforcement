@@ -690,7 +690,6 @@ def main():
         day_number = int(time.time()/(24*3600))
         if day_number % modulo != rse_hash % modulo:
             empty_dirs_list_prefix = None
-        else:
             print("Empty directories list will not be computed because the day does not match the -E option value")
 
     if empty_dirs_list_prefix:
