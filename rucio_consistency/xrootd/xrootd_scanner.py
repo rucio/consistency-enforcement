@@ -474,7 +474,6 @@ python xrootd_scanner.py [options] <rse>
     Options:
     -c <config.yaml>|-c rucio   - required - read config either from a YAML file or from Rucio
     -o <output file prefix>     - output will be sent to <output>.00000, <output>.00001, ...
-    -e <path>                   - output file for the list of empty directories
     -t <timeout>                - xrdfs ls operation timeout (default 30 seconds)
     -m <max workers>            - default 5
     -R <recursion depth>        - start using -R at or below this depth (dfault 3)
@@ -485,6 +484,8 @@ python xrootd_scanner.py [options] <rse>
     -M <max_files>              - stop scanning the root after so many files were found
     -s <stats_file>             - write final statistics to JSON file
     -r <root count file>        - JSON file with file counds by root
+    -E <n>                      - compile empty directories only event n-th day
+    -e <path>                   - output prefix for the list of empty directories, if -e is used
 """
 
 def path_to_lfn(path, path_prefix, remove_prefix, add_prefix, path_filter, rewrite_path, rewrite_out):
@@ -686,8 +687,8 @@ def main():
     if empty_dirs_list_prefix and "-E" in opts:
         modulo = int(opts["-E"])
         rse_hash = int.from_bytes(md5(rse.encode("utf-8")).digest())
-        day_in_year = date.today().toordinal()
-        if day_in_year % modulo != rse_hash % modulo:
+        day_number = int(time.time()/(24*3600))
+        if day_number % modulo != rse_hash % modulo:
             empty_dirs_list_prefix = None
         else:
             print("Empty directories list will not be computed because the day does not match the -E option value")
