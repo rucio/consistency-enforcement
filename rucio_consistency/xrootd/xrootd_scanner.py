@@ -6,7 +6,7 @@ from hashlib import md5
 from rucio_consistency import to_str, Stats, PartitionedList, ScannerConfiguration
 from rucio_consistency.xrootd import XRootDClient
 
-Version = "5.0"
+Version = "6.0"
 
 GB = 1024*1024*1024
 
@@ -643,6 +643,7 @@ def main():
     opts = dict(opts)
     
     if len(args) != 1 or not "-c" in opts:
+        print("Version:", Version)
         print(Usage)
         sys.exit(2)
 
