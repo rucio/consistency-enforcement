@@ -554,7 +554,7 @@ def scan_root(rse, config, client, root, root_expected, my_stats, stats, stats_k
     master = ScannerMaster(client, path_converter, root, root_expected, recursive_threshold, max_scanners, timeout, quiet, display_progress,
             stats=stats, my_stats=my_stats,
             max_files = max_files, include_sizes=include_sizes,
-            files_out=files_list, , dirs_out=dirs_list,
+            files_out=files_list,
             empty_dirs_out=empty_dirs_list, compute_empty_dirs=compute_empty_dirs,
             ignore_list = ignore_list)
 
