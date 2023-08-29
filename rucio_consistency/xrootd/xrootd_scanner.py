@@ -698,7 +698,7 @@ def main():
     if compute_empty_dirs and "-E" in opts:
         modulo = int(opts["-E"])
         assert modulo != 0
-        rse_hash = int.from_bytes(md5(rse.encode("utf-8")).digest())
+        rse_hash = int.from_bytes(md5(rse.encode("utf-8")).digest(), byteorder='big')
         day_number = int(time.time()/(24*3600))
         compute_empty_dirs = (day_number % modulo) == (rse_hash % modulo)
         if not compute_empty_dirs:
@@ -734,7 +734,7 @@ def main():
         "end_time":                     None,
         "status":                       "started",
         "files_output_prefix":          output,
-        "empty_dirs_file":              empty_dirs_file,
+        "empty_dirs_output_file":       empty_dirs_file,
         "compute_empty_dirs":           compute_empty_dirs,
         "empty_dirs_count_only":        empty_dirs_count_only,
         "heartbeat":                    t,
