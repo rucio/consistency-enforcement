@@ -6,7 +6,7 @@ from hashlib import md5
 from rucio_consistency import to_str, Stats, PartitionedList, ScannerConfiguration
 from rucio_consistency.xrootd import XRootDClient
 
-Version = "5.0"
+Version = "6.0"
 
 GB = 1024*1024*1024
 
@@ -129,7 +129,7 @@ class Scanner(Task):
     MAX_REC_ZERO_RETRY = 1
 
     def __init__(self, master, client, timeout, location, recursive, include_sizes=True, report_empty_top=True, 
-            list_empty_dirs=False):
+            compute_empty_dirs=False):
         Task.__init__(self)
         self.Client = client
         self.Master = master
@@ -145,7 +145,7 @@ class Scanner(Task):
         self.IncludeSizes = include_sizes
         self.ReportEmptyTop = report_empty_top
         self.Timeout = timeout
-        self.ListEmptyDirs = list_empty_dirs
+        self.ComputeEmptyDirs = compute_empty_dirs
         
     def __str__(self):
         return "Scanner(%s)" % (self.Location,)
@@ -197,7 +197,7 @@ class Scanner(Task):
     
         empty_dirs = None
         empty_dir_count = 0
-        if self.ListEmptyDirs:
+        if self.ComputeEmptyDirs:
             #
             # create the set of directories, which contain no files, recursively
             #
@@ -230,7 +230,7 @@ class ScannerMaster(PyThread):
     
     def __init__(self, client, path_converter, root, root_expected, recursive_threshold, max_scanners, timeout, quiet, display_progress, 
                 max_files = None, include_sizes=True, ignore_list=[], 
-                files_out=None, dirs_out=None, empty_dirs_out=None, my_stats=None, stats=None):
+                files_out=None, dirs_out=None, compute_empty_dirs=False, empty_dirs_out=None, my_stats=None, stats=None):
         PyThread.__init__(self)
         self.RecursiveThreshold = recursive_threshold
         self.PathConverter = path_converter
@@ -264,6 +264,7 @@ class ScannerMaster(PyThread):
         self.FilesOut = files_out
         self.DirsOut = dirs_out
         self.EmptyDirsOut = empty_dirs_out
+        self.ComputeEmptyDirs = compute_empty_dirs
         self.MyStats = my_stats
         self.Stats = stats
         self.NextHeartbeat = 0
@@ -277,7 +278,7 @@ class ScannerMaster(PyThread):
         #
         #server, location, recursive, timeout
         scanner_task = Scanner(self, self.Client, self.Timeout, self.Root, self.RecursiveThreshold == 0, include_sizes=self.IncludeSizes, 
-                report_empty_top=False, list_empty_dirs=self.ListEmptyDirs)
+                report_empty_top=False, compute_empty_dirs=self.ComputeEmptyDirs)
         self.ScannerQueue.addTask(scanner_task)
         if self.HEARTBEAT_INTERVAL is not None:
             while not self.ScannerQueue.isEmpty():
@@ -315,7 +316,7 @@ class ScannerMaster(PyThread):
             if self.MaxFiles is None or self.NFiles < self.MaxFiles:
                 self.ScannerQueue.addTask(
                     Scanner(self, self.Client, self.Timeout, logpath, allow_recursive, include_sizes=self.IncludeSizes,
-                    list_empty_dirs=self.ListEmptyDirs)
+                    compute_empty_dirs=self.ComputeEmptyDirs)
                 )
                 self.NToScan += 1
         #print("  added")
@@ -352,7 +353,7 @@ class ScannerMaster(PyThread):
             self.show_progress()            #"Error scanning %s: %s -- retrying" % (scanner.Location, error))
 
     @synchronized
-    def scanner_succeeded(self, scanner, location, was_recursive, files, dirs, empty_dir_count, empty_dirs):
+    def ________scanner_succeeded(self, scanner, location, was_recursive, files, dirs, empty_dir_count, empty_dirs):
         self.wakeup()               # do not sleep for the heatbeat any longer
         if not files and not dirs and was_recursive and scanner.ZeroAttempts > 0:
             scanner.ZeroAttempts -= 1
@@ -433,7 +434,7 @@ class ScannerMaster(PyThread):
                 for path in empty_dirs:
                     if path != self.Root:
                         # do not report root even if it is empty
-                        self.EmptyDirsOut.add(path)
+                        self.EmptyDirsOut.write(path + "\n")
 
         self.show_progress()
 
@@ -484,8 +485,9 @@ python xrootd_scanner.py [options] <rse>
     -M <max_files>              - stop scanning the root after so many files were found
     -s <stats_file>             - write final statistics to JSON file
     -r <root count file>        - JSON file with file counds by root
-    -E <n>                      - compile empty directories only event n-th day
-    -e <path>                   - output prefix for the list of empty directories, if -e is used
+    -E <n>                      - compile empty directories only event n-th day. n > 0
+    -e <path>                   - output file for empty dits list. Use .gz extension to have it compressed
+    -e count-only               - do not produce empty dirs list, just count them
 """
 
 def path_to_lfn(path, path_prefix, remove_prefix, add_prefix, path_filter, rewrite_path, rewrite_out):
@@ -517,7 +519,7 @@ def path_to_lfn(path, path_prefix, remove_prefix, add_prefix, path_filter, rewri
 def scan_root(rse, config, client, root, root_expected, my_stats, stats, stats_key, 
             quiet, display_progress, max_files,
             recursive_threshold, max_scanners, timeout,
-            files_list, empty_dirs_list, dirs_list,
+            files_list, compute_empty_dirs, empty_dirs_list, dirs_list,
             ignore_failed_directories, include_sizes):
 
     failed = root_failed = False
@@ -552,7 +554,8 @@ def scan_root(rse, config, client, root, root_expected, my_stats, stats, stats_k
     master = ScannerMaster(client, path_converter, root, root_expected, recursive_threshold, max_scanners, timeout, quiet, display_progress,
             stats=stats, my_stats=my_stats,
             max_files = max_files, include_sizes=include_sizes,
-            files_out=files_list, empty_dirs_out=empty_dirs_list, dirs_out=dirs_list,
+            files_out=files_list,
+            empty_dirs_out=empty_dirs_list, compute_empty_dirs=compute_empty_dirs,
             ignore_list = ignore_list)
 
     path_filter = None          # -- obsolete -- config.scanner_filter(rse)
@@ -640,6 +643,7 @@ def main():
     opts = dict(opts)
     
     if len(args) != 1 or not "-c" in opts:
+        print("Version:", Version)
         print(Usage)
         sys.exit(2)
 
@@ -678,23 +682,36 @@ def main():
             print (Usage)
             sys.exit(2)
 
-    output = opts.get("-o","out.list")
+    output = opts.get("-o", "out.list")
 
     out_list = PartitionedList.create(nparts, output, zout)
-    empty_dirs_list = None
-    
-    empty_dirs_list_prefix = opts.get("-e")
-    if empty_dirs_list_prefix and "-E" in opts:
+
+    #
+    # Do we need to compute empty dirs ?
+    #
+    empty_dirs_out = None
+    empty_dirs_file = opts.get("-e")
+    empty_dirs_count_only = empty_dirs_file == "count-only"
+    if empty_dirs_count_only:
+        empty_dirs_file = None
+    compute_empty_dirs = bool(empty_dirs_count_only or empty_dirs_file)
+    if compute_empty_dirs and "-E" in opts:
         modulo = int(opts["-E"])
-        rse_hash = int.from_bytes(md5(rse.encode("utf-8")).digest())
+        assert modulo != 0
+        rse_hash = int.from_bytes(md5(rse.encode("utf-8")).digest(), byteorder='big')
         day_number = int(time.time()/(24*3600))
-        if day_number % modulo != rse_hash % modulo:
-            empty_dirs_list_prefix = None
+        compute_empty_dirs = (day_number % modulo) == (rse_hash % modulo)
+        if not compute_empty_dirs:
             print("Empty directories list will not be computed because the day does not match the -E option value")
 
-    if empty_dirs_list_prefix:
-        print("Empty directories list will be computed and stored in:", empty_dirs_list_prefix)
-        empty_dirs_list = PartitionedList.create(nparts, empty_dirs_list_prefix, zout)
+    print("Compute empty dirs:", compute_empty_dirs)
+    print("Empty dirs outut:", "count only" if empty_dirs_count_only else empty_dirs_file)
+
+    if empty_dirs_file and compute_empty_dirs:
+        if empty_dirs_file.endswith(".gz"):
+            empty_dirs_out = gzip.open(empty_dirs_file, "wt")
+        else:
+            empty_dirs_out = open(empty_dirs_file, "w")
         
     server = config.Server
     server_root = config.ServerRoot
@@ -717,7 +734,9 @@ def main():
         "end_time":                     None,
         "status":                       "started",
         "files_output_prefix":          output,
-        "empty_dirs_list_prefix":       empty_dirs_list_prefix,
+        "empty_dirs_output_file":       empty_dirs_file,
+        "compute_empty_dirs":           compute_empty_dirs,
+        "empty_dirs_count_only":        empty_dirs_count_only,
         "heartbeat":                    t,
         "heartbeat_utc":                datetime.utcfromtimestamp(t).strftime("%Y-%m-%d %H:%M:%S UTC")
     }
@@ -758,7 +777,7 @@ def main():
                 failed = scan_root(rse, config, client, root, expected, my_stats, stats, stats_key, 
                         quiet, display_progress, max_files,
                         recursive_threshold, max_scanners, timeout,
-                        out_list, empty_dirs_list, None, 
+                        out_list, compute_empty_dirs, empty_dirs_out, None, 
                         ignore_directory_scan_errors, include_sizes)
 
             except:
@@ -774,8 +793,8 @@ def main():
                 break
 
         out_list.close()
-        if empty_dirs_list is not None:
-            empty_dirs_list.close()
+        if empty_dirs_out is not None:
+            empty_dirs_out.close()
 
         total_files = sum(root_stats["files"] for root_stats in my_stats["roots"])
 
