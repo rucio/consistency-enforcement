@@ -694,13 +694,13 @@ def main():
     empty_dirs_count_only = empty_dirs_file == "count-only"
     if empty_dirs_count_only:
         empty_dirs_file = None
-    compute_empty_dirs = empty_dirs_count_only or empty_dirs_file
+    compute_empty_dirs = bool(empty_dirs_count_only or empty_dirs_file)
     if compute_empty_dirs and "-E" in opts:
         modulo = int(opts["-E"])
         assert modulo != 0
         rse_hash = int.from_bytes(md5(rse.encode("utf-8")).digest())
         day_number = int(time.time()/(24*3600))
-        compute_empty_dirs = day_number % modulo == rse_hash % modulo
+        compute_empty_dirs = (day_number % modulo) == (rse_hash % modulo)
         if not compute_empty_dirs:
             print("Empty directories list will not be computed because the day does not match the -E option value")
 
