@@ -2,9 +2,8 @@ from pythreader import TaskQueue, Task, DEQueue, PyThread, synchronized, ShellCo
 import re, json, os, os.path, traceback, sys, time, random, gzip
 from datetime import datetime, timezone, date
 from hashlib import md5
-from trace import Tracer, DummyTracer
 
-from rucio_consistency import to_str, Stats, PartitionedList, ScannerConfiguration
+from rucio_consistency import to_str, Stats, PartitionedList, ScannerConfiguration, Tracer, DummyTracer
 from rucio_consistency.xrootd import XRootDClient
 
 Version = "6.1"
