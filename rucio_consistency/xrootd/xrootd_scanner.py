@@ -2,6 +2,7 @@ from pythreader import TaskQueue, Task, DEQueue, PyThread, synchronized, ShellCo
 import re, json, os, os.path, traceback, sys, time, random, gzip
 from datetime import datetime, timezone, date
 from hashlib import md5
+from trace import Tracer, DummyTracer
 
 from rucio_consistency import to_str, Stats, PartitionedList, ScannerConfiguration
 from rucio_consistency.xrootd import XRootDClient
@@ -129,7 +130,7 @@ class Scanner(Task):
     MAX_REC_ZERO_RETRY = 1
 
     def __init__(self, master, client, timeout, location, recursive, include_sizes=True, report_empty_top=True, 
-            compute_empty_dirs=False):
+            compute_empty_dirs=False, do_trace=False):
         Task.__init__(self)
         self.Client = client
         self.Master = master
@@ -146,6 +147,7 @@ class Scanner(Task):
         self.ReportEmptyTop = report_empty_top
         self.Timeout = timeout
         self.ComputeEmptyDirs = compute_empty_dirs
+        self.Tracer = Tracer() if do_trace else DummyTracer()
         
     def __str__(self):
         return "Scanner(%s)" % (self.Location,)
@@ -167,58 +169,62 @@ class Scanner(Task):
         return words[0] or "/"
                 
     def run(self):
-        #print("Scanner.run():", self.Master)
-        t0 = time.time()
-        location = self.Location
-        if self.RecAttempts > 0:
-            recursive = True
-            self.RecAttempts -= 1
-        else:
-            recursive = False
-            self.FlatAttempts -= 1
-        self.WasRecursive = recursive
-        #self.message("start", stats)
+        with self.Tracer["run"] as run_tr:
+            #print("Scanner.run():", self.Master)
+            t0 = time.time()
+            location = self.Location
+            if self.RecAttempts > 0:
+                recursive = True
+                self.RecAttempts -= 1
+            else:
+                recursive = False
+                self.FlatAttempts -= 1
+            self.WasRecursive = recursive
+            #self.message("start", stats)
 
-        # Location is relative to the server root, it does start with '/'. E.g. /store/mc/run2
-        status, reason, dirs, files = self.Client.ls(self.Location, recursive, self.IncludeSizes, timeout=self.Timeout)
-        # paths are relative to the Server Root, they do start with '/', e.g. /store/mc/run2/data.file
-        files = list(files)
-        dirs = list(dirs)
-        self.Elapsed = time.time() - self.Started
-        stats = ("r" if recursive else " ") + " t=%6.1fs" % (self.Elapsed,)
-        if status != "OK":
-            stats += " " + reason
-            self.message(status, stats)
-            if self.Master is not None:
-                self.Master.scanner_failed(self, f"{status}: {reason}")
-            return "failed", None, None, None, reason
+            # Location is relative to the server root, it does start with '/'. E.g. /store/mc/run2
+            with run_tr["ls"]:
+                status, reason, dirs, files = self.Client.ls(self.Location, recursive, self.IncludeSizes, timeout=self.Timeout)
+                # paths are relative to the Server Root, they do start with '/', e.g. /store/mc/run2/data.file
+            files = list(files)
+            dirs = list(dirs)
+            self.Elapsed = time.time() - self.Started
+            stats = ("r" if recursive else " ") + " t=%6.1fs" % (self.Elapsed,)
+            if status != "OK":
+                stats += " " + reason
+                self.message(status, stats)
+                if self.Master is not None:
+                    self.Master.scanner_failed(self, f"{status}: {reason}")
+                return "failed", None, None, None, reason
 
-        #stats = "%1s %7.3fs" % ("r" if recursive else " ", self.Elapsed)
+            #stats = "%1s %7.3fs" % ("r" if recursive else " ", self.Elapsed)
     
-        empty_dirs = None
-        empty_dir_count = 0
-        if self.ComputeEmptyDirs:
-            #
-            # create the set of directories, which contain no files, recursively
-            #
-            empty_dirs = set()
-            if recursive:
-                empty_dirs = set(p for p, _ in dirs)
-                for path, _ in files:
-                    dirpath = self.parent(path)
-                    while dirpath and dirpath != '/' and dirpath in empty_dirs:
-                        empty_dirs.remove(dirpath)
-                        dirpath = self.parent(dirpath)
+            empty_dirs = None
+            empty_dir_count = 0
+            if self.ComputeEmptyDirs:
+                with run_tr["empty_dirs"]:
+                    #
+                    # create the set of directories, which contain no files, recursively
+                    #
+                    empty_dirs = set()
+                    if recursive:
+                        empty_dirs = set(p for p, _ in dirs)
+                        for path, _ in files:
+                            dirpath = self.parent(path)
+                            while dirpath and dirpath != '/' and dirpath in empty_dirs:
+                                empty_dirs.remove(dirpath)
+                                dirpath = self.parent(dirpath)
 
-            if self.ReportEmptyTop and (recursive or not dirs) and not files:
-                empty_dirs.add(self.Location)
-            empty_dir_count = len(empty_dirs)
+                    if self.ReportEmptyTop and (recursive or not dirs) and not files:
+                        empty_dirs.add(self.Location)
+                    empty_dir_count = len(empty_dirs)
 
-        counts = " files: %-8d dirs: %-8d empty: %-8d" % (len(files), len(dirs), empty_dir_count)
-        if self.IncludeSizes:
-            total_size = sum(size for _, size in files) + sum(size for _, size in dirs)
-            counts += " size: %10.3fGB" % (total_size/GB,)
-        self.message("done", stats+counts)
+            counts = " files: %-8d dirs: %-8d empty: %-8d" % (len(files), len(dirs), empty_dir_count)
+            if self.IncludeSizes:
+                total_size = sum(size for _, size in files) + sum(size for _, size in dirs)
+                counts += " size: %10.3fGB" % (total_size/GB,)
+            self.message("done", stats+counts)
+        self.Tracer.print_stats("--- scanner trace stats ---")
         return "done", dirs, files, empty_dirs, None
 
 class ScannerMaster(PyThread):
@@ -228,6 +234,7 @@ class ScannerMaster(PyThread):
     HEARTBEAT_INTERVAL = 60
     
     def __init__(self, client, path_converter, root, root_expected, recursive_threshold, max_scanners, timeout, quiet, display_progress, 
+                do_trace = False,
                 max_files = None, include_sizes=True, ignore_list=[], 
                 files_out=None, dirs_out=None, compute_empty_dirs=False, empty_dirs_out=None, my_stats=None, stats=None):
         PyThread.__init__(self)
@@ -266,6 +273,7 @@ class ScannerMaster(PyThread):
         self.MyStats = my_stats
         self.Stats = stats
         self.NextHeartbeat = 0
+        self.Tracer = Tracer() if do_trace else DummyTracer
 
     def taskFailed(self, queue, task, exc_type, exc_value, tb):
         traceback.print_exception(exc_type, exc_value, tb, file=sys.stderr)
@@ -292,6 +300,7 @@ class ScannerMaster(PyThread):
         self.ScannerQueue.waitUntilEmpty()
         self.ScannerQueue.Delegate = None       # detach for garbage collection
         self.ScannerQueue = None
+        self.Tracer.print_stats("--- root trace stats ---")
         
     def dir_ignored(self, logpath):
         # path is expected to be canonic here
@@ -336,46 +345,50 @@ class ScannerMaster(PyThread):
 
     @synchronized
     def taskEnded(self, queue, scanner, results):
-        self.wakeup()               # do not sleep for the heatbeat any longer
-        status, dirs, files, empty_dirs, error = results
-        was_recursive = scanner.WasRecursive
-        if not files and not dirs and was_recursive and scanner.ZeroAttempts > 0:
-            scanner.ZeroAttempts -= 1
-            print("resubmitted because recursive scan found nothing:", scanner.Location)
-            self.ScannerQueue.addTask(scanner)
-            return
+        with self.Tracer["taskEnded"] as te_tracer:
+            self.wakeup()               # do not sleep for the heatbeat any longer
+            status, dirs, files, empty_dirs, error = results
+            was_recursive = scanner.WasRecursive
+            if not files and not dirs and was_recursive and scanner.ZeroAttempts > 0:
+                scanner.ZeroAttempts -= 1
+                print("resubmitted because recursive scan found nothing:", scanner.Location)
+                self.ScannerQueue.addTask(scanner)
+                return
 
-        for path, size in dirs:
-            self.NDirectories += 1
-            logpath = self.PathConverter.path_to_logpath(path)
-            ignored = self.dir_ignored(logpath)
-            if ignored:
-                self.IgnoredDirs += 1
-                print(logpath, " - directory ignored")
-            elif self.DirsOut is not None:
-                self.DirsOut.add(logpath)
-            if not was_recursive and not ignored:
-                self.addDirectoryToScan(logpath, True)
+            for path, size in dirs:
+                with te_tracer["dirs"]:
+                    self.NDirectories += 1
+                    logpath = self.PathConverter.path_to_logpath(path)
+                    ignored = self.dir_ignored(logpath)
+                    if ignored:
+                        self.IgnoredDirs += 1
+                        print(logpath, " - directory ignored")
+                    elif self.DirsOut is not None:
+                        self.DirsOut.add(logpath)
+                    if not was_recursive and not ignored:
+                        self.addDirectoryToScan(logpath, True)
 
-        self.NScanned += 1
-        for path, size in files:
-            logpath = self.PathConverter.path_to_logpath(path)
-            self.NFiles += 1
-            if self.FilesOut is not None and not self.file_ignored(logpath):
-                self.FilesOut.add(logpath)
-                self.TotalSize += size
-            else:
-                self.IgnoredFiles += 1
+            self.NScanned += 1
+            for path, size in files:
+                with te_tracer["files"]:
+                    logpath = self.PathConverter.path_to_logpath(path)
+                    self.NFiles += 1
+                    if self.FilesOut is not None and not self.file_ignored(logpath):
+                        self.FilesOut.add(logpath)
+                        self.TotalSize += size
+                    else:
+                        self.IgnoredFiles += 1
 
-        if empty_dirs:
-            self.NEmptyDirs += len(empty_dirs)
-            if self.EmptyDirsOut is not None:
-                for path in empty_dirs:
-                    if path != self.Root:
-                        # do not report root even if it is empty
-                        self.EmptyDirsOut.write(path + "\n")
+            if empty_dirs:
+                self.NEmptyDirs += len(empty_dirs)
+                if self.EmptyDirsOut is not None:
+                    for path in empty_dirs:
+                        with te_tracer["empty_dirs"]:
+                            if path != self.Root:
+                                # do not report root even if it is empty
+                                self.EmptyDirsOut.write(path + "\n")
 
-        self.show_progress()
+            self.show_progress()
 
     @synchronized
     def show_progress(self, message=None):
