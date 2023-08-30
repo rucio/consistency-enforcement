@@ -7,7 +7,7 @@ from trace import Tracer, DummyTracer
 from rucio_consistency import to_str, Stats, PartitionedList, ScannerConfiguration
 from rucio_consistency.xrootd import XRootDClient
 
-Version = "6.0"
+Version = "6.1"
 
 GB = 1024*1024*1024
 
