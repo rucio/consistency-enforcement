@@ -211,12 +211,14 @@ class Scanner(Task):
                         empty_dirs = set(p for p, _ in dirs)
                         for path, _ in files:
                             dirpath = self.parent(path)
-                            while dirpath and dirpath != '/' and dirpath in empty_dirs:
-                                empty_dirs.remove(dirpath)
+                            while dirpath and dirpath != '/':
+                                try:                empty_dirs.remove(dirpath)
+                                except KeyError:    break
                                 dirpath = self.parent(dirpath)
 
                     if self.ReportEmptyTop and (recursive or not dirs) and not files:
                         empty_dirs.add(self.Location)
+
                     empty_dir_count = len(empty_dirs)
                     empty_dirs = sorted(empty_dirs, reverse=True)
 
