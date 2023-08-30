@@ -46,6 +46,14 @@ class XRootDClient(Primitive):
                 self.Servers.insert(i-1, server)
 
     Line_Patterns = [
+        # xrdfs ls -l style
+        r"""
+                (?P<mask>[drwx-]{4})\s+
+                \d{4}-\d{2}-\d{2}\s+
+                \d{2}:\d{2}:\d{2}\s+
+                (?P<size>\d+)\s+
+                (?P<path>[^ ]+)
+        """
         # UNIX FS ls -l style
         r"""
                 (?P<mask>[drwx-]{10})\s+
@@ -56,14 +64,6 @@ class XRootDClient(Primitive):
                 \d{2}:\d{2}:\d{2}\s+
                 (?P<path>[^ ]+)
         """,
-        # xrdfs ls -l style
-        r"""
-                (?P<mask>[drwx-]{4})\s+
-                \d{4}-\d{2}-\d{2}\s+
-                \d{2}:\d{2}:\d{2}\s+
-                (?P<size>\d+)\s+
-                (?P<path>[^ ]+)
-        """
     ]
     
     Line_Patterns = [re.compile(p, re.VERBOSE) for p in Line_Patterns]

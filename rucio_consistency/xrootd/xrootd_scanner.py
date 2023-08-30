@@ -218,6 +218,7 @@ class Scanner(Task):
                     if self.ReportEmptyTop and (recursive or not dirs) and not files:
                         empty_dirs.add(self.Location)
                     empty_dir_count = len(empty_dirs)
+                    empty_dirs = sorted(empty_dirs, reverse=True)
 
             counts = " files: %-8d dirs: %-8d empty: %-8d" % (len(files), len(dirs), empty_dir_count)
             if self.IncludeSizes:
@@ -235,7 +236,7 @@ class ScannerMaster(PyThread):
     def __init__(self, client, path_converter, root, root_expected, recursive_threshold, max_scanners, timeout, quiet, display_progress, 
                 do_trace = False,
                 max_files = None, include_sizes=True, ignore_list=[], 
-                files_out=None, dirs_out=None, compute_empty_dirs=False, empty_dirs_out=None, my_stats=None, stats=None):
+                files_out=None, compute_empty_dirs=False, empty_dirs_out=None, my_stats=None, stats=None):
         PyThread.__init__(self)
         self.RecursiveThreshold = recursive_threshold
         self.PathConverter = path_converter
@@ -266,7 +267,6 @@ class ScannerMaster(PyThread):
         self.RootExpected = root_expected
         self.ListEmptyDirs = empty_dirs_out is not None
         self.FilesOut = files_out
-        self.DirsOut = dirs_out
         self.EmptyDirsOut = empty_dirs_out
         self.ComputeEmptyDirs = compute_empty_dirs
         self.MyStats = my_stats
@@ -366,8 +366,6 @@ class ScannerMaster(PyThread):
                     if ignored:
                         self.IgnoredDirs += 1
                         print(logpath, " - directory ignored")
-                    elif self.DirsOut is not None:
-                        self.DirsOut.add(logpath)
                     if not was_recursive and not ignored:
                         self.addDirectoryToScan(logpath, True)
 
