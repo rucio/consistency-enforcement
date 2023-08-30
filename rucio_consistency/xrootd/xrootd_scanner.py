@@ -272,8 +272,8 @@ class ScannerMaster(PyThread):
         self.MyStats = my_stats
         self.Stats = stats
         self.NextHeartbeat = 0
-        self.MasterTracer = Tracer() if do_trace else DummyTracer
-        self.ScannerTracer = Tracer() if do_trace else DummyTracer
+        self.MasterTracer = Tracer() if do_trace else DummyTracer()
+        self.ScannerTracer = Tracer() if do_trace else DummyTracer()
 
     def taskFailed(self, queue, task, exc_type, exc_value, tb):
         traceback.print_exception(exc_type, exc_value, tb, file=sys.stderr)
@@ -438,6 +438,7 @@ python xrootd_scanner.py [options] <rse>
     -E <n>                      - compile empty directories only event n-th day. n > 0
     -e <path>                   - output file for empty dits list. Use .gz extension to have it compressed
     -e count-only               - do not produce empty dirs list, just count them
+    -T                          - turn tracing on
 """
 
 def path_to_lfn(path, path_prefix, remove_prefix, add_prefix, path_filter, rewrite_path, rewrite_out):
@@ -470,7 +471,8 @@ def scan_root(rse, config, client, root, root_expected, my_stats, stats, stats_k
             quiet, display_progress, max_files,
             recursive_threshold, max_scanners, timeout,
             files_list, compute_empty_dirs, empty_dirs_list, dirs_list,
-            ignore_failed_directories, include_sizes):
+            ignore_failed_directories, include_sizes,
+            do_trace):
 
     failed = root_failed = False
     
@@ -506,7 +508,7 @@ def scan_root(rse, config, client, root, root_expected, my_stats, stats, stats_k
             max_files = max_files, include_sizes=include_sizes,
             files_out=files_list,
             empty_dirs_out=empty_dirs_list, compute_empty_dirs=compute_empty_dirs,
-            ignore_list = ignore_list)
+            ignore_list = ignore_list, do_trace=do_trace)
 
     path_filter = None          # -- obsolete -- config.scanner_filter(rse)
     #if path_filter is not None:
@@ -589,7 +591,7 @@ def main():
     import getopt, sys, time
 
     t0 = time.time()    
-    opts, args = getopt.getopt(sys.argv[1:], "t:m:o:R:n:c:vqM:s:S:zkxe:r:E:")
+    opts, args = getopt.getopt(sys.argv[1:], "t:m:o:R:n:c:vqM:s:S:zkxe:r:E:T")
     opts = dict(opts)
     
     if len(args) != 1 or not "-c" in opts:
@@ -620,6 +622,7 @@ def main():
     stats = None if not stats_file else Stats(stats_file)
     
     zout = "-z" in opts
+    do_trace = "-T" in opts
     
     if "-n" in opts:
         nparts = int(opts["-n"])
@@ -728,7 +731,7 @@ def main():
                         quiet, display_progress, max_files,
                         recursive_threshold, max_scanners, timeout,
                         out_list, compute_empty_dirs, empty_dirs_out, None, 
-                        ignore_directory_scan_errors, include_sizes)
+                        ignore_directory_scan_errors, include_sizes, do_trace)
 
             except:
                 exc = traceback.format_exc()
