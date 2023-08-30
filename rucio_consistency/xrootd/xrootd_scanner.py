@@ -225,7 +225,6 @@ class ScannerMaster(PyThread):
     
     MAX_RECURSION_FAILED_COUNT = 5
     REPORT_INTERVAL = 10.0
-    RESULTS_BUFFER_SISZE = 100
     HEARTBEAT_INTERVAL = 60
     
     def __init__(self, client, path_converter, root, root_expected, recursive_threshold, max_scanners, timeout, quiet, display_progress, 
@@ -237,7 +236,6 @@ class ScannerMaster(PyThread):
         self.Client = client
         self.Root = root
         self.MaxScanners = max_scanners
-        self.Results = DEQueue(self.RESULTS_BUFFER_SISZE)
         self.ScannerQueue = TaskQueue(max_scanners, stagger=0.2, delegate=self)
         self.Done = False
         self.Error = None
@@ -276,7 +274,8 @@ class ScannerMaster(PyThread):
         #
         # scan Root non-recursovely first, if failed, return immediarely
         #
-        #server, location, recursive, timeout
+
+        # prime the queue with the root non-recursive scan
         scanner_task = Scanner(self, self.Client, self.Timeout, self.Root, self.RecursiveThreshold == 0, include_sizes=self.IncludeSizes, 
                 report_empty_top=False, compute_empty_dirs=self.ComputeEmptyDirs)
         self.ScannerQueue.addTask(scanner_task)
@@ -291,7 +290,6 @@ class ScannerMaster(PyThread):
                         self.Stats.save()
                     self.NextHeartbeat += self.HEARTBEAT_INTERVAL
         self.ScannerQueue.waitUntilEmpty()
-        self.Results.close()
         self.ScannerQueue.Delegate = None       # detach for garbage collection
         self.ScannerQueue = None
         
@@ -321,22 +319,6 @@ class ScannerMaster(PyThread):
                 self.NToScan += 1
         #print("  added")
 
-    def addEmptyDirectories(self, paths):
-        if not self.Failed:
-            for path in paths:
-                if path != self.Root:
-                    # do not report root even if it is empty
-                    self.Results.append(('e', path))
-                else:
-                    print("Empty root", path,"removed from empty list")
-
-    @synchronized
-    def report(self):
-        if time.time() > self.LastReport + self.REPORT_INTERVAL:
-            waiting, active = self.ScannerQueue.tasks()
-            #sys.stderr.write("--- Locations to scan: %d\n" % (len(active)+len(waiting),))
-            self.LastReport = time.time()
-
     @synchronized
     def scanner_failed(self, scanner, error):
         self.wakeup()               # do not sleep for the heatbeat any longer
@@ -351,49 +333,6 @@ class ScannerMaster(PyThread):
             self.NScanned += 1  
             #sys.stderr.write("Gave up on: %s\n" % (path,))
             self.show_progress()            #"Error scanning %s: %s -- retrying" % (scanner.Location, error))
-
-    @synchronized
-    def ________scanner_succeeded(self, scanner, location, was_recursive, files, dirs, empty_dir_count, empty_dirs):
-        self.wakeup()               # do not sleep for the heatbeat any longer
-        if not files and not dirs and was_recursive and scanner.ZeroAttempts > 0:
-            scanner.ZeroAttempts -= 1
-            print("resubmitted because recursive scan found nothing:", scanner.Location)
-            self.ScannerQueue.addTask(scanner)
-            return
-
-        self.NScanned += 1
-        for path, size in files:
-            logpath = self.PathConverter.path_to_logpath(path)
-            self.NFiles += 1
-            if not self.file_ignored(logpath):
-                self.Results.append(('f', logpath))
-                self.TotalSize += size
-            else:
-                self.IgnoredFiles += 1
-
-        scan = not was_recursive
-        allow_recursive = scan #and len(dirs) > 1
-        #print("scanner_succeeded: loop over dirs... scan:", scan)
-        for path, size in dirs:
-            self.NDirectories += 1
-            if scan:
-                logpath = self.PathConverter.path_to_logpath(path)
-                if self.dir_ignored(logpath):
-                    self.IgnoredDirs += 1
-                    print(logpath, " - directory ignored")
-                else:
-                    self.addDirectoryToScan(logpath, allow_recursive)
-
-        self.NEmptyDirs += empty_dir_count
-        if empty_dirs:
-            for path in empty_dirs:
-                if path != self.Root:
-                    # do not report root even if it is empty
-                    self.Results.append(('e', path))
-                else:
-                    print("Empty root", path,"removed from empty list")
-
-        self.show_progress()
 
     @synchronized
     def taskEnded(self, queue, scanner, results):
@@ -437,11 +376,6 @@ class ScannerMaster(PyThread):
                         self.EmptyDirsOut.write(path + "\n")
 
         self.show_progress()
-
-    def paths(self):
-        # log paths, e.g. /store/mc/...
-        for t, path in self.Results:
-            yield t, path
 
     @synchronized
     def show_progress(self, message=None):
