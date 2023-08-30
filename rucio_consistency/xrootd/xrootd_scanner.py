@@ -279,7 +279,7 @@ class ScannerMaster(PyThread):
         scanner_task = Scanner(self, self.Client, self.Timeout, self.Root, self.RecursiveThreshold == 0, include_sizes=self.IncludeSizes, 
                 report_empty_top=False, compute_empty_dirs=self.ComputeEmptyDirs)
         self.ScannerQueue.addTask(scanner_task)
-        if self.HEARTBEAT_INTERVAL is not None:
+        if self.HEARTBEAT_INTERVAL is not None and self.Stats is not None:
             while not self.ScannerQueue.isEmpty():
                 self.sleep(self.HEARTBEAT_INTERVAL)
                 t = time.time()
