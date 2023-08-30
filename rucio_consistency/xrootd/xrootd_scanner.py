@@ -130,7 +130,7 @@ class Scanner(Task):
     MAX_REC_ZERO_RETRY = 1
 
     def __init__(self, master, client, timeout, location, recursive, include_sizes=True, report_empty_top=True, 
-            compute_empty_dirs=False, do_trace=False):
+            compute_empty_dirs=False, tracer=None):
         Task.__init__(self)
         self.Client = client
         self.Master = master
@@ -147,7 +147,7 @@ class Scanner(Task):
         self.ReportEmptyTop = report_empty_top
         self.Timeout = timeout
         self.ComputeEmptyDirs = compute_empty_dirs
-        self.Tracer = Tracer() if do_trace else DummyTracer()
+        self.Tracer = tracer or DummyTracer()
         
     def __str__(self):
         return "Scanner(%s)" % (self.Location,)
@@ -224,7 +224,6 @@ class Scanner(Task):
                 total_size = sum(size for _, size in files) + sum(size for _, size in dirs)
                 counts += " size: %10.3fGB" % (total_size/GB,)
             self.message("done", stats+counts)
-        self.Tracer.print_stats("--- scanner trace stats ---")
         return "done", dirs, files, empty_dirs, None
 
 class ScannerMaster(PyThread):
@@ -273,7 +272,8 @@ class ScannerMaster(PyThread):
         self.MyStats = my_stats
         self.Stats = stats
         self.NextHeartbeat = 0
-        self.Tracer = Tracer() if do_trace else DummyTracer
+        self.MasterTracer = Tracer() if do_trace else DummyTracer
+        self.ScannerTracer = Tracer() if do_trace else DummyTracer
 
     def taskFailed(self, queue, task, exc_type, exc_value, tb):
         traceback.print_exception(exc_type, exc_value, tb, file=sys.stderr)
@@ -285,7 +285,8 @@ class ScannerMaster(PyThread):
 
         # prime the queue with the root non-recursive scan
         scanner_task = Scanner(self, self.Client, self.Timeout, self.Root, self.RecursiveThreshold == 0, include_sizes=self.IncludeSizes, 
-                report_empty_top=False, compute_empty_dirs=self.ComputeEmptyDirs)
+                report_empty_top=False, compute_empty_dirs=self.ComputeEmptyDirs,
+                tracer=self.ScannerTracer)
         self.ScannerQueue.addTask(scanner_task)
         if self.HEARTBEAT_INTERVAL is not None and self.Stats is not None:
             while not self.ScannerQueue.isEmpty():
@@ -300,7 +301,9 @@ class ScannerMaster(PyThread):
         self.ScannerQueue.waitUntilEmpty()
         self.ScannerQueue.Delegate = None       # detach for garbage collection
         self.ScannerQueue = None
-        self.Tracer.print_stats("--- root trace stats ---")
+        self.ScannerTracer.print_stats("--- scanner trace stats ---")
+        self.MasterTracer.print_stats("--- root trace stats ---")
+        
         
     def dir_ignored(self, logpath):
         # path is expected to be canonic here
@@ -323,7 +326,7 @@ class ScannerMaster(PyThread):
             if self.MaxFiles is None or self.NFiles < self.MaxFiles:
                 self.ScannerQueue.addTask(
                     Scanner(self, self.Client, self.Timeout, logpath, allow_recursive, include_sizes=self.IncludeSizes,
-                    compute_empty_dirs=self.ComputeEmptyDirs)
+                    compute_empty_dirs=self.ComputeEmptyDirs, tracer=self.ScannerTracer)
                 )
                 self.NToScan += 1
         #print("  added")
@@ -345,7 +348,7 @@ class ScannerMaster(PyThread):
 
     @synchronized
     def taskEnded(self, queue, scanner, results):
-        with self.Tracer["taskEnded"] as te_tracer:
+        with self.MasterTracer["taskEnded"] as te_tracer:
             self.wakeup()               # do not sleep for the heatbeat any longer
             status, dirs, files, empty_dirs, error = results
             was_recursive = scanner.WasRecursive
