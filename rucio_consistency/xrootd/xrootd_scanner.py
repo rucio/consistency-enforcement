@@ -6,7 +6,7 @@ from hashlib import md5
 from rucio_consistency import to_str, Stats, PartitionedList, ScannerConfiguration, Tracer, DummyTracer
 from rucio_consistency.xrootd import XRootDClient
 
-Version = "6.1"
+Version = "6.1.1"
 
 GB = 1024*1024*1024
 
@@ -244,7 +244,7 @@ class ScannerMaster(PyThread):
         self.Client = client
         self.Root = root
         self.MaxScanners = max_scanners
-        self.ScannerQueue = TaskQueue(max_scanners, stagger=0.01, delegate=self)
+        self.ScannerQueue = TaskQueue(max_scanners, delegate=self)
         self.Done = False
         self.Error = None
         self.Failed = False
@@ -679,6 +679,7 @@ def main():
             "type":"xrootd",
             "version":Version
         },
+        "parallel_scanners":            max_scanners,
         "server_root":                  server_root,
         "server":                       server,
         "roots":                        [],
