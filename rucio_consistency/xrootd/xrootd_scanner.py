@@ -126,7 +126,7 @@ class Scanner(Task):
     
     MAX_ATTEMPTS_REC = 3
     MAX_ATTEMPTS_FLAT = 3
-    MAX_REC_ZERO_RETRY = 1
+    MAX_REC_ZERO_RETRY = 2
 
     def __init__(self, master, client, timeout, location, recursive, include_sizes=True, report_empty_top=True, 
             compute_empty_dirs=False, tracer=None):
@@ -192,8 +192,8 @@ class Scanner(Task):
             if status != "OK":
                 stats += " " + reason
                 self.message(status, stats)
-                if self.Master is not None:
-                    self.Master.scanner_failed(self, f"{status}: {reason}")
+                #if self.Master is not None:
+                #    self.Master.scanner_failed(self, f"{status}: {reason}")
                 return "failed", None, None, None, reason
 
             #stats = "%1s %7.3fs" % ("r" if recursive else " ", self.Elapsed)
@@ -333,7 +333,7 @@ class ScannerMaster(PyThread):
         #print("  added")
 
     @synchronized
-    def scanner_failed(self, scanner, error):
+    def ____scanner_failed(self, scanner, error):
         self.wakeup()               # do not sleep for the heatbeat any longer
         path = scanner.Location                
         retry = (scanner.RecAttempts > 0) or (scanner.FlatAttempts > 0)
@@ -352,43 +352,57 @@ class ScannerMaster(PyThread):
         with self.MasterTracer["taskEnded"] as te_tracer:
             self.wakeup()               # do not sleep for the heatbeat any longer
             status, dirs, files, empty_dirs, error = results
-            was_recursive = scanner.WasRecursive
-            if not files and not dirs and was_recursive and scanner.ZeroAttempts > 0:
-                scanner.ZeroAttempts -= 1
-                print("resubmitted because recursive scan found nothing:", scanner.Location)
-                self.ScannerQueue.addTask(scanner)
-                return
+            
+            if status == "failed":
+                path = scanner.Location                
+                retry = (scanner.RecAttempts > 0) or (scanner.FlatAttempts > 0)
+                if retry:
+                    print("resubmitted because of error:", scanner.Location, scanner.RecAttempts, scanner.FlatAttempts)
+                    self.ScannerQueue.addTask(scanner)
+                else:
+                    print("Gave up:", scanner.Location)
+                    self.GaveUp[scanner.Location] = error
+                    self.NScanned += 1  
+                    #sys.stderr.write("Gave up on: %s\n" % (path,))
+            else:
+                # done
+                was_recursive = scanner.WasRecursive
+                if not files and not dirs and was_recursive and scanner.ZeroAttempts > 0:
+                    scanner.ZeroAttempts -= 1
+                    print("resubmitted because recursive scan found nothing:", scanner.Location)
+                    self.ScannerQueue.addTask(scanner)
+                    return
 
-            for path, size in dirs:
-                with te_tracer["dirs"]:
-                    self.NDirectories += 1
-                    logpath = self.PathConverter.path_to_logpath(path)
-                    ignored = self.dir_ignored(logpath)
-                    if ignored:
-                        self.IgnoredDirs += 1
-                        print(logpath, " - directory ignored")
-                    if not was_recursive and not ignored:
-                        self.addDirectoryToScan(logpath, True)
+                for path, size in dirs:
+                    with te_tracer["dirs"]:
+                        self.NDirectories += 1
+                        logpath = self.PathConverter.path_to_logpath(path)
+                        ignored = self.dir_ignored(logpath)
+                        if ignored:
+                            self.IgnoredDirs += 1
+                            print(logpath, " - directory ignored")
+                        if not was_recursive and not ignored:
+                            self.addDirectoryToScan(logpath, True)
 
-            self.NScanned += 1
-            for path, size in files:
-                with te_tracer["files"]:
-                    logpath = self.PathConverter.path_to_logpath(path)
-                    self.NFiles += 1
-                    if self.FilesOut is not None and not self.file_ignored(logpath):
-                        self.FilesOut.add(logpath)
-                        self.TotalSize += size
-                    else:
-                        self.IgnoredFiles += 1
+                self.NScanned += 1
+                for path, size in files:
+                    with te_tracer["files"]:
+                        logpath = self.PathConverter.path_to_logpath(path)
+                        self.NFiles += 1
+                        if self.FilesOut is not None and not self.file_ignored(logpath):
+                            self.FilesOut.add(logpath)
+                            self.TotalSize += size
+                        else:
+                            self.IgnoredFiles += 1
 
-            if empty_dirs:
-                self.NEmptyDirs += len(empty_dirs)
-                if self.EmptyDirsOut is not None:
-                    for path in empty_dirs:
-                        with te_tracer["empty_dirs"]:
-                            if path != self.Root:
-                                # do not report root even if it is empty
-                                self.EmptyDirsOut.write(path + "\n")
+                if empty_dirs:
+                    self.NEmptyDirs += len(empty_dirs)
+                    if self.EmptyDirsOut is not None:
+                        for path in empty_dirs:
+                            with te_tracer["empty_dirs"]:
+                                if path != self.Root:
+                                    # do not report root even if it is empty
+                                    self.EmptyDirsOut.write(path + "\n")
 
             self.show_progress()
 
