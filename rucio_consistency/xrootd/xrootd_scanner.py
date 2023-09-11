@@ -172,12 +172,14 @@ class Scanner(Task):
             #print("Scanner.run():", self.Master)
             t0 = time.time()
             location = self.Location
-            if self.RecAttempts > 0:
-                recursive = True
-                self.RecAttempts -= 1
-            else:
-                recursive = False
-                self.FlatAttempts -= 1
+            recursive = False
+            if not self.ForcedFlat:
+                if self.RecAttempts > 0:
+                    recursive = True
+                    self.RecAttempts -= 1
+                else:
+                    recursive = False
+                    self.FlatAttempts -= 1
             self.WasRecursive = recursive
             #self.message("start", stats)
 
@@ -358,7 +360,7 @@ class ScannerMaster(PyThread):
                 retry = (scanner.RecAttempts > 0) or (scanner.FlatAttempts > 0)
                 if retry:
                     print("resubmitted because of error:", scanner.Location, scanner.RecAttempts, scanner.FlatAttempts)
-                    self.ScannerQueue.addTask(scanner)
+                    self.ScannerQueue.append(scanner)
                 else:
                     print("Gave up:", scanner.Location)
                     self.GaveUp[scanner.Location] = error
@@ -367,12 +369,24 @@ class ScannerMaster(PyThread):
             else:
                 # done
                 was_recursive = scanner.WasRecursive
-                if not files and not dirs and was_recursive and scanner.ZeroAttempts > 0:
-                    scanner.ZeroAttempts -= 1
-                    print("resubmitted because recursive scan found nothing:", scanner.Location)
-                    self.ScannerQueue.addTask(scanner)
-                    return
+                if was_recursive and not files and not dirs:
+                    #
+                    # Recursive scan returned nothing. Double check by scanning non-recursively
+                    #
+                    status, reason, dirs, files = self.Client.ls(scanner.Location, False, self.IncludeSizes, timeout=self.Timeout)
+                    if status != "OK":
+                        print("Flat scanner check failed:", reason)
+                        error = reason
+                    elif dirs or files:
+                        print("Flat scanner check found:", len(dirs), "dirs and", len(files), "files")
+                        error = "Recursive scan returned empty for non-empty location %s, dirs: %d, files: %d" %
+                             (scanner.Location, len(dirs), len(files))
+                    if status != "OK" or dirs or files:
+                        print("Gave up:", scanner.Location)
+                        self.GaveUp[scanner.Location] = error
+                        self.NScanned += 1  
 
+                self.NScanned += 1
                 for path, size in dirs:
                     with te_tracer["dirs"]:
                         self.NDirectories += 1
@@ -384,7 +398,6 @@ class ScannerMaster(PyThread):
                         if not was_recursive and not ignored:
                             self.addDirectoryToScan(logpath, True)
 
-                self.NScanned += 1
                 for path, size in files:
                     with te_tracer["files"]:
                         logpath = self.PathConverter.path_to_logpath(path)
