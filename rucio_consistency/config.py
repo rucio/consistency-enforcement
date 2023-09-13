@@ -335,7 +335,9 @@ class MergedCEConfiguration(object):
         rse_config = self.merge(self.ConfigFromFile["rses"].get("*", {}), self.ConfigFromFile["rses"].get(rse, {}))
         print("merged rse config from file:")
         pprint.pprint(rse_config)
-        return self.merge(rse_config, self.ConfigFromRSE)
+        out = self.merge(rse_config, self.ConfigFromRSE)
+        print("final merged:", out)
+        return out
 
 class ScannerConfiguration(CEConfiguration):
     
