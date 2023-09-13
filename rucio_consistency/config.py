@@ -296,7 +296,7 @@ class MergedCEConfiguration(object):
         self.ConfigFromRSE = self.config_from_rse()
 
     def config_from_rse(self):
-        rse_config = self.RSEClient.list_rse_attributes(rse.upper())
+        rse_config = self.RSEClient.list_rse_attributes(rse)
         cfg = {}
         if self.CONFIG_PREFIX+"disabled" in rse_config:     
             cfg["enabled"] = rse_config[self.CONFIG_PREFIX+"disabled"] == "yes"
