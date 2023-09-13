@@ -333,7 +333,7 @@ class MergedCEConfiguration(object):
 
     def config(self):
         rse_config = self.merge(self.ConfigFromFile["rses"].get("*", {}), self.ConfigFromFile["rses"].get(rse, {}))
-        return merge(rse_config, self.ConfigFromRSE)
+        return self.merge(rse_config, self.ConfigFromRSE)
 
 class ScannerConfiguration(CEConfiguration):
     
