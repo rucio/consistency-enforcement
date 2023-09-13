@@ -366,7 +366,7 @@ if __name__ == "__main__":
     opts = dict(opts)
     rse, config_file = args[:2]
     cfg = MergedCEConfiguration(rse, config_file)
-    yaml.dump(cfg.config())
+    print(yaml.dumps(cfg.config()))
     
         
         
