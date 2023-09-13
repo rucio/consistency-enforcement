@@ -326,7 +326,7 @@ class MergedCEConfiguration(object):
         out = defaults.copy()
         for key, value in overrides.items():
             if isinstance(value, dict):
-                out[key] = merge(defaults.get(key, {}), value)
+                out[key] = self.merge(defaults.get(key, {}), value)
             else:
                 out[key] = value
         return out
