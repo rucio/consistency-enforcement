@@ -358,7 +358,7 @@ class ScannerConfiguration(CEConfiguration):
 
 if __name__ == "__main__":
     import sys, getopt
-    opts, args = getopt.getopt(sys.argv[1:])
+    opts, args = getopt.getopt(sys.argv[1:], "")
     opts = dict(opts)
     rse, config_file = args[:2]
     cfg = MergedCEConfiguration(rse, config_file)
