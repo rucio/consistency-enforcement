@@ -50,7 +50,6 @@ class RSEConfiguration(object):
         self.IgnoreList = cfg.get("ignore_list", [])
         roots = self.ScanerConfig.get("roots", [])
         self.RootList = [d["path"] for d in roots]
-
         #
         # scanner configuration
         #
@@ -81,7 +80,7 @@ class CEConfiguration(object):
         defaults = config.get("rses", {}).get("*", {})
         for rse, rse_config in config.get("rses", []).items():
             if rse != "*":
-                self.ConfigByRSE = self.merge(defaults, rse_config)
+                self.ConfigByRSE[rse] = self.merge(defaults, rse_config)
 
     def merge(self, defaults, overrides):
         out = defaults.copy()

@@ -477,7 +477,6 @@ def scan_root(rse, config, client, root, root_expected, my_stats, stats, stats_k
     
     server = config.Server
     server_root = config.ServerRoot
-    ignore_subdirs = config.ignore_subdirs(root)
     is_redirector = config.ServerIsRedirector
     ignore_list = config.IgnoreList
 
@@ -489,7 +488,6 @@ def scan_root(rse, config, client, root, root_expected, my_stats, stats, stats_k
         "timeout":timeout,
         "recursive_threshold":recursive_threshold,
         "max_scanners":max_scanners,
-        "ignore_subdirectories": ignore_subdirs,
         "servers": client.Servers
     }
 
@@ -574,7 +572,6 @@ def scan_root(rse, config, client, root, root_expected, my_stats, stats, stats_k
         "end_time":t1,
         "elapsed_time": t1-t0,
         "total_size_gb": total_size,
-        "ignored_subdirectories": ignore_subdirs,
         "servers": client.Servers
     })
 
