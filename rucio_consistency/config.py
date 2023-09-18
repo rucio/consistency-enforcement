@@ -67,6 +67,9 @@ class RSEConfiguration(object):
         # DB dump configuration
         #
         self.DBDumpPathRoot = self.Config.get("dbdump", {}).get("path_root", "/")
+        
+    def get(self, name, default=None):
+        return self.Config.get(name, default)
 
 
 class CEConfiguration(object):

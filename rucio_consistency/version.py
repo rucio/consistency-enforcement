@@ -1,4 +1,4 @@
-Version = "1.7.1"
+Version = "1.7.2"
 
 version_info = tuple([int(p) for p in Version.split(".")])
 
