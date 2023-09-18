@@ -1,7 +1,7 @@
 import random, string, sys, glob, time, gzip, os
 from rucio_consistency import PartitionedList, cmp3_generator, Stats, intersection_count
 
-Version = "cmp5 1.1"
+Version = "cmp5 1.2"
 
 Usage = """
 %s [-z] [-s <stats file> [-S <stats key>]] <b m prefix> <b d prefix> <r prefix> <a m prefix> <a d prefix> <dark output> <missing output>
