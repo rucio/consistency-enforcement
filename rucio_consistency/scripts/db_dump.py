@@ -36,16 +36,6 @@ Usage = """
 
 t0 = time.time()
 
-class DBDumpConfiguration(CEConfiguration):
-
-    def __init__(self, rse, *params, **agrs):
-        CEConfiguration.__init__(self, rse, *params, **agrs)
-        self.DBDumpPathRoot = self.dbdump_param(rse, "path_root", "/")
-
-    def __getitem__(self, name):
-        return self.dbdump_param(self.RSE, name, required=True)
-
-#from sqlalchemy import schema
 
 class GUID(TypeDecorator):
     """
@@ -136,7 +126,7 @@ def main():
 
     #print("dbconfig: url:", dbconfig.DBURL, "schema:", dbconfig.Schema)
 
-    config = DBDumpConfiguration(rse_name, opts["-c"])
+    config = CEConfiguration(opts["-c"])[rse_name]
 
     stats = None if stats_file is None else Stats(stats_file)
 

@@ -36,7 +36,7 @@ def main():
     if "-c" in opts:
         rse = opts["-r"]
         cfg = opts["-c"]
-        config = CEConfiguration(rse, cfg)
+        config = CEConfiguration(cfg)[rse]
         ignore_list = config.IgnoreList
         nparts = config.NPartitions
     zout = "-z" in opts

@@ -3,7 +3,7 @@ import re, json, os, os.path, traceback, sys, time, random, gzip
 from datetime import datetime, timezone, date
 from hashlib import md5
 
-from rucio_consistency import to_str, Stats, PartitionedList, ScannerConfiguration, Tracer, DummyTracer
+from rucio_consistency import to_str, Stats, PartitionedList, CEConfiguration, Tracer, DummyTracer
 from rucio_consistency.xrootd import XRootDClient
 
 Version = "6.1.1"
@@ -599,7 +599,7 @@ def main():
         sys.exit(2)
 
     rse = args[0]
-    config = ScannerConfiguration(rse, opts["-c"])
+    config = CEConfiguration(opts["-c"])[rse]
 
     quiet = "-q" in opts
     display_progress = not quiet and "-v" in opts
