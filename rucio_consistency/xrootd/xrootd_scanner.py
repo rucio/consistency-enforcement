@@ -126,7 +126,7 @@ class Scanner(Task):
     
     MAX_ATTEMPTS_REC = 3
     MAX_ATTEMPTS_FLAT = 3
-    MAX_REC_ZERO_RETRY = 1
+    MAX_REC_ZERO_RETRY = 2
 
     def __init__(self, master, client, timeout, location, recursive, include_sizes=True, report_empty_top=True, 
             compute_empty_dirs=False, tracer=None):
