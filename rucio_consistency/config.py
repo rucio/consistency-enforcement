@@ -59,7 +59,7 @@ class RSEConfiguration(object):
         self.RemovePrefix = self.ScanerConfig.get("remove_prefix", "")        # to be applied after site root is removed
         self.AddPrefix = self.ScanerConfig.get("add_prefix", "")              # to be applied after site root is removed
         self.NWorkers = self.ScanerConfig.get("nworkers", 8)
-        self.IncludeSizes = self.ScanerConfig.get("include_sizes", False)
+        self.IncludeSizes = self.ScanerConfig.get("include_sizes", True)
         self.RecursionThreshold = self.ScanerConfig.get("recursion", 1)
         self.ServerIsRedirector = self.ScanerConfig.get("is_redirector", True)
 
