@@ -127,12 +127,12 @@ def main():
                 "end_time": t1,
                 "missing": nm,
                 "dark": nd,
-                "dbdump_intersection_count": a_b_intersection_count,
+                "expected_files": a_b_intersection_count,
                 "status": "done",
                 "missing_list_file": out_missing.rsplit('/', 1)[-1],        # file names only
                 "dark_list_file": out_dark.rsplit('/', 1)[-1]
             })
-                
+
         if stats is not None:
             stats[stats_key] = my_stats
 
