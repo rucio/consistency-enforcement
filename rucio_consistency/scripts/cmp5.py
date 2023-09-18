@@ -1,5 +1,5 @@
 import random, string, sys, glob, time, gzip, os
-from rucio_consistency import PartitionedList, cmp3_generator, Stats
+from rucio_consistency import PartitionedList, cmp3_generator, Stats, intersection_count
 
 Version = "cmp5 1.1"
 
