@@ -6,7 +6,7 @@ from hashlib import md5
 from rucio_consistency import to_str, Stats, PartitionedList, CEConfiguration, Tracer, DummyTracer
 from rucio_consistency.xrootd import XRootDClient
 
-Version = "6.1.1"
+Version = "6.2.0"
 
 GB = 1024*1024*1024
 
