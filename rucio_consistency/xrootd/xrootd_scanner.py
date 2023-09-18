@@ -148,6 +148,9 @@ class Scanner(Task):
         self.ComputeEmptyDirs = compute_empty_dirs
         self.Tracer = tracer or DummyTracer()
         
+    def disable_recursion(self):
+        self.RecAttempts = 0
+        
     def __str__(self):
         return "Scanner(%s)" % (self.Location,)
 
@@ -353,11 +356,19 @@ class ScannerMaster(PyThread):
             self.wakeup()               # do not sleep for the heatbeat any longer
             status, dirs, files, empty_dirs, error = results
             was_recursive = scanner.WasRecursive
-            if not files and not dirs and was_recursive and scanner.ZeroAttempts > 0:
-                scanner.ZeroAttempts -= 1
-                print("resubmitted because recursive scan found nothing:", scanner.Location)
-                self.ScannerQueue.addTask(scanner)
-                return
+            if not files and not dirs and was_recursive:
+                if scanner.ZeroAttempts > 0:
+                    print("resubmitting because recursive scan found nothing:", scanner.Location)
+                    scanner.ZeroAttempts -= 1
+                    self.ScannerQueue.append(scanner)
+                    return
+                else:
+                    print("resubmitting as non-recursive scan because recursive scan found nothing:", scanner.Location)
+                    scanner.disable_recursion()
+                    self.ScannerQueue.append(scanner)
+                    return
+
+
 
             for path, size in dirs:
                 with te_tracer["dirs"]:
