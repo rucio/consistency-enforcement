@@ -1,6 +1,6 @@
 from .part import PartitionedList, part
 from .py3 import to_str, to_bytes
-from .cmplib import cmp3_generator
+from .cmplib import cmp3_generator, intersection_count
 from .stats import Stats
 from .config import CEConfiguration, DBConfig
 from .version import Version as __version__, version_info

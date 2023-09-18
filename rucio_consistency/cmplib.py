@@ -49,6 +49,26 @@ def cmp3(a, r, b):
     #print("memory utilization at the end of cmp3, MB:", getMemory())
     return list(d), list(m)
     
+def cmp2(a, b):
+    """
+    returns tuple:   (a&b), (a-b), (b-a)
+    """
+    a_set = set(a)
+    a_and_b = set()
+    b_minus_a = set()
+    a_minus_b = set()
+
+    for x in b:
+        if x in a_set:
+            a_and_b.add(x)
+        else:
+            b_minus_a.add(x)
+    for x in a_set:
+        if x not in a_and_b:
+            a_minus_b.add(x)
+    
+    return a_and_b, a_minus_b, b_minus_a
+    
 def cmp3_missing(a, r, b):
     #       M = A*B-R
     m = set()    
@@ -91,6 +111,13 @@ def cmp3_lists(a_list, r_list, b_list):
             m_list += m
             print("Partition %d compared: dark:%d missing:%d" % (i, len(d), len(m))) 
     return d_list, m_list
+
+def intersection_count(a_list, b_list):
+    n = 0
+    for i, (ap, bp) in enumerate(zip(a_list.partitions, b_list.partitions)):
+        a_and_b, _, _ = cmp2(ap, bp)
+        n += len(a_and_b)
+    return n
 
 def cmp3_generator(a_list, r_list, b_list, stream=None):
     """

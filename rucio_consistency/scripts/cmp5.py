@@ -58,6 +58,7 @@ def main():
                 "end_time": None,
                 "missing": None,
                 "dark": None,
+                "dbdump_intersection_count": None,
                 
                 "missing_list_file": None,
                 "dark_list_file": None,
@@ -112,13 +113,21 @@ def main():
         fd.close()
 
         print("Found %d dark and %d missing replicas" % (nd, nm))
+
+        a_m_list = PartitionedList.open(a_m_prefix)
+        b_m_list = PartitionedList.open(b_m_prefix)
+        a_b_intersection_count = intersection_count(a_m_list, b_m_list)
+
+        print("DBDump before and after intersetion count:", a_b_intersection_count)
+
         t1 = time.time()
-        
+
         my_stats.update({
                 "elapsed": t1-t0,
                 "end_time": t1,
                 "missing": nm,
                 "dark": nd,
+                "dbdump_intersection_count": a_b_intersection_count,
                 "status": "done",
                 "missing_list_file": out_missing.rsplit('/', 1)[-1],        # file names only
                 "dark_list_file": out_dark.rsplit('/', 1)[-1]
