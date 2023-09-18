@@ -1,0 +1,5 @@
+#!/bin/env python3
+
+from rucio_consistency.scripts import cmp5
+
+cmp5.main()
