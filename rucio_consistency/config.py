@@ -86,6 +86,7 @@ class CEConfiguration(object):
                 self.ConfigByRSE[rse] = self.merge(defaults, rse_config)
 
     def merge(self, defaults, overrides):
+        overrides = overrides or {}
         out = defaults.copy()
         for key, value in overrides.items():
             if isinstance(value, dict):
