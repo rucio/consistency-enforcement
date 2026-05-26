@@ -25,16 +25,16 @@ periodically for each RSE and consists of the following steps:
 
 2.  Inconsistencies detection
 
-    > 1.  Compute list of "dark" replicas as the list of replicas found
-    >     in (R) but not in (BC) or (AC) - replicas which are not
-    >     supposed to be in the RSE:
-    >
-    >     D = R - BC - AC
-    >
-    > 2.  Compute list of "missing" replicas as the list of replicas in
-    >     both (BA) and (AA) but not in (R):
-    >
-    >     M = (BA \* AA) - R
+    1.  Compute list of "dark" replicas as the list of replicas found
+        in (R) but not in (BC) or (AC) - replicas which are not
+        supposed to be in the RSE:
+
+        D = R - BC - AC
+
+    2.  Compute list of "missing" replicas as the list of replicas in
+        both (BA) and (AA) but not in (R):
+
+        M = (BA * AA) - R
 
 3.  Consistency Enforcement actions
 
