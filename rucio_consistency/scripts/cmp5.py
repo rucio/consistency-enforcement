@@ -118,7 +118,7 @@ def main():
         b_m_list = PartitionedList.open(b_m_prefix)
         a_b_intersection_count = intersection_count(a_m_list, b_m_list)
 
-        print("DBDump before and after intersetion count:", a_b_intersection_count)
+        print("DBDump before and after intersection count:", a_b_intersection_count)
 
         t1 = time.time()
 
