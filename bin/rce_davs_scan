@@ -1,0 +1,5 @@
+#!/bin/env python3
+
+from rucio_consistency.davs import davs_scanner
+
+davs_scanner.main()
