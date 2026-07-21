@@ -12,12 +12,13 @@ def get_version():
 setup(
     name = "rucio-consistency",
     version = get_version(),
-    author = "Igor Mandrichenko",
-    author_email = "ivm@fnal.gov",
-    description = ("Common modules and scripts for Rucio consistency enforcement"),
+    # The original author of most of this is the late Igor Mandrichenko of Fermilab. Vaandering is the author of record
+    author = "Eric Vaandering",
+    author_email = "ewv@fnal.gov",
+    description ="Common modules and scripts for Rucio consistency enforcement",
     license = "BSD 3-clause",
     url = "https://github.com/rucio/consistency-enforcement",
-    packages=['rucio_consistency', "rucio_consistency.scripts", "rucio_consistency.xrootd"],
+    packages=['rucio_consistency', "rucio_consistency.scripts", "rucio_consistency.xrootd", "rucio_consistency.davs"],
     long_description="Common modules and scripts for Rucio consistency enforcement", #read('README'),
     zip_safe = False,
     install_requires=["sqlalchemy", "pythreader"],
@@ -29,7 +30,8 @@ setup(
             "rce_cmp5 = rucio_consistency.scripts.cmp5:main",
             "rce_cmp3 = rucio_consistency.scripts.cmp3:main",
             "rce_cmp2 = rucio_consistency.scripts.cmp2:main",
-            "rce_scan = rucio_consistency.xrootd.xrootd_scanner:main"
+            "rce_scan = rucio_consistency.xrootd.xrootd_scanner:main",
+            "rce_davs_scan = rucio_consistency.davs.davs_scanner:main"
         ]
     }
 )
