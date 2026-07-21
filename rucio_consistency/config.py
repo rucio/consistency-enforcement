@@ -1,22 +1,23 @@
-import re, os, json, yaml, pprint
 from configparser import ConfigParser
+
+import yaml
 
 
 class DBConfig:
 
-	# class to read relevant parameters from rucio.cfg
+    # class to read relevant parameters from rucio.cfg
 
     def __init__(self, schema, dburl):
         self.DBURL = dburl
         self.Schema = schema
-    
+
     @staticmethod
     def from_cfg(path):
         cfg = ConfigParser()
         cfg.read(path)
         dbparams = dict(cfg.items("database"))
         return DBConfig(dbparams.get("schema"), dbparams["default"])
-        
+
     @staticmethod
     def from_yaml(path_or_dict):
         if isinstance(path_or_dict, str):
@@ -36,7 +37,7 @@ class DBConfig:
             port = cfg["port"]
             service = cfg["service"]
             dburl = "oracle+cx_oracle://%s:%s@%s:%s/?service_name=%s" % (
-                                    user, password, host, port, service)
+                user, password, host, port, service)
         return DBConfig(schema, dburl)
 
 
@@ -45,29 +46,38 @@ class RSEConfiguration(object):
     def __init__(self, rse, cfg):
         self.RSE = rse
         self.Config = cfg
+        # FIXME: Typo here. Should be ScannerConfig
         self.ScanerConfig = cfg.get("scanner", {})
+        self.DavsScannerConfig = cfg.get("davs_scanner", {})
         self.NPartitions = cfg.get("npartitions", 8)
         self.IgnoreList = cfg.get("ignore_list", [])
         roots = self.ScanerConfig.get("roots", [])
         self.RootList = [d["path"] for d in roots]
+        dav_roots = self.DavsScannerConfig.get("roots", [])
+        self.DavsRootList = [d["path"] for d in dav_roots]
         #
         # scanner configuration
         #
         self.Server = self.ScanerConfig["server"]
-        self.ServerRoot = self.ScanerConfig.get("server_root", "/")           # prefix up to, but not including /store/
+        self.ServerRoot = self.ScanerConfig.get("server_root", "/")  # prefix up to, but not including /store/
         self.ScannerTimeout = self.ScanerConfig.get("timeout", 300)
-        self.RemovePrefix = self.ScanerConfig.get("remove_prefix", "")        # to be applied after site root is removed
-        self.AddPrefix = self.ScanerConfig.get("add_prefix", "")              # to be applied after site root is removed
+        self.RemovePrefix = self.ScanerConfig.get("remove_prefix", "")  # to be applied after site root is removed
+        self.AddPrefix = self.ScanerConfig.get("add_prefix", "")  # to be applied after site root is removed
         self.NWorkers = self.ScanerConfig.get("nworkers", 8)
         self.IncludeSizes = self.ScanerConfig.get("include_sizes", True)
         self.RecursionThreshold = self.ScanerConfig.get("recursion", 1)
         self.ServerIsRedirector = self.ScanerConfig.get("is_redirector", True)
 
+        self.DavsServer = self.DavsScannerConfig.get("server", None)
+        self.DavsRoot = self.DavsScannerConfig.get("server_root", "/")
+        self.DavsTimeout = self.DavsScannerConfig.get("timeout", 3600)
+        self.DavsNWorkers = self.DavsScannerConfig.get("nworkers", 8)
+
         #
         # DB dump configuration
         #
         self.DBDumpPathRoot = self.Config.get("dbdump", {}).get("path_root", "/")
-        
+
     def get(self, name, default=None):
         return self.Config.get(name, default)
 
